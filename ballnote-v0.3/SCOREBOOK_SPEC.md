@@ -134,8 +134,15 @@ Current defensive implementation:
 - the first change in a batch creates the Undo snapshot; subsequent changes in the same timing batch do not
 - Undo once restores the complete simultaneous substitution batch, and Redo once restores the batch
 
+Current opponent-roster / substitution implementation:
+- opponent starts with nine placeholder starters and nine placeholder bench players
+- opponent names can be edited after game start without blocking scoring
+- PH / PR routing uses the currently attacking team, so either team can substitute offensively
+- defensive substitution / position change routing uses the currently fielding team, so either team can substitute defensively
+- appearance history, bench movement, substitution events, batchId, and scorecard timing are kept per team
+- dual-team substitution routing has a focused logic test
+
 Still required:
-- opponent-team substitutions after opponent roster editing is added
 - advanced pitcher responsibility / inherited-runner statistics
 
 ## 8. Full-game half-inning state
@@ -265,10 +272,11 @@ Added after reference-scorebook review:
 - defensive substitution, position change, and pitching-change events while MY TEAM fields
 - defensive and pitching stint histories
 - simultaneous substitution timing groups use a shared batchId and one-step Undo/Redo
+- opponent roster names are editable after start while placeholders remain valid
+- opponent bench placeholders support later PH / PR / defense changes
+- substitution routing now works for either offense or defense team
 
 Next:
-- editable opponent roster / names after game start
-- opponent-team substitution events
 - per-pitcher aggregation and inherited-runner responsibility
 - expanded error and FC responsibility rules
 - printable/PDF score sheet
