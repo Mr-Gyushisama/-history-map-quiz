@@ -1,0 +1,28 @@
+name: BALLNOTE Regression
+
+on:
+  push:
+    branches:
+      - ballnote-scorebook-v030
+    paths:
+      - 'ballnote-v0.3/index.html'
+      - 'ballnote-v0.3/REGRESSION_TEST.js'
+      - '.github/workflows/ballnote-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run BALLNOTE regression
+        run: node ballnote-v0.3/REGRESSION_TEST.js
