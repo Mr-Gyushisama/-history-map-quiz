@@ -23,6 +23,6 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Run BALLNOTE regression
         run: node ballnote-v0.3/REGRESSION_TEST.js
