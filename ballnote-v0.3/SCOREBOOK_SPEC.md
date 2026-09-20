@@ -149,9 +149,17 @@ Pitching aggregation now implemented:
 - walks
 - strikeouts
 - pitching outs with baseball IP notation
+- runs (R), earned runs (ER), and wild pitches (WP)
 - pitcher identity follows the active defensive P position
 - when the pitcher is not registered, stats are retained under an explicit unknown-pitcher bucket rather than guessed
-- inherited-runner runs and earned runs are intentionally not auto-assigned yet
+- each scorecard that creates a runner stores responsiblePitcherId / responsiblePitcherTeam
+- pinch running does not change pitcher responsibility because the original runner scorecard remains canonical
+- inherited runners that later score are charged to the original responsible pitcher
+- a fielder's-choice out of an inherited runner can transfer the predecessor-pitcher liability to a surviving runner, preserving the predecessor's responsibility count
+- if multiple predecessor liabilities make the transfer ambiguous, the Play is flagged needsScorerReview rather than silently inventing certainty
+- mid-plate-appearance pitching changes preserve walk responsibility for 2-0, 2-1, 3-0, 3-1, and 3-2 counts
+- at those counts, a later walk is charged to the predecessor; a non-walk result is charged to the reliever
+- Undo / Redo restores score, bases, pitcher R/ER, and responsibility assignments atomically
 
 Fielding aggregation now implemented from structured play data:
 - PO from the fielder who completes each recorded out
@@ -162,8 +170,9 @@ Fielding aggregation now implemented from structured play data:
 - normal strikeout credits the catcher with the rules-based putout
 
 Still required:
-- advanced pitcher responsibility / inherited-runner and earned-run logic
-- scorer override for ambiguous fielding sequences, rundowns, interference, and post-error secondary plays
+- full 9.16 virtual-inning reconstruction for every multi-error / multi-reliever edge case
+- explicit scorer UI to resolve a needsScorerReview pitcher-responsibility transfer
+- scorer override for ambiguous fielding sequences, rundowns, interference, appeals, and post-error secondary plays
 
 ## 8. Full-game half-inning state
 The canonical live state now distinguishes:
@@ -319,10 +328,14 @@ Verification:
   - one-step Undo restores outs/bases/score
   - Redo restores the completed play
 - focused logic tests PASS for simultaneous-substitution atomic Undo/Redo, dual-team substitution routing, per-pitcher aggregation, and fielding PO/A/DP
+- in-play raw Pitch[] + PO/A fielding integration PASS for 6-3 groundout and 8 flyout
+- inherited-runner test PASS: runner reaches vs predecessor, reliever enters, runner scores, R/ER remain with predecessor
+- mid-count pitching-change tests PASS: 2-0 -> walk belongs predecessor; 2-0 -> hit belongs reliever
+- fielder-choice liability-transfer test PASS: inherited runner forced out, replacement runner later scores, predecessor retains R/ER
+- WP, pitcher R/ER Undo, and Redo focused tests PASS
 
 Next:
-- inherited-runner / earned-run responsibility with scorer override
-- expanded error and FC responsibility rules
+- explicit correction UI for pitcher-responsibility and earned-run review flags
 - special fielding sequences: rundowns, interference, appeals, post-error secondary plays
 - cloud upload / idempotent reconciliation
 - printable/PDF score sheet
