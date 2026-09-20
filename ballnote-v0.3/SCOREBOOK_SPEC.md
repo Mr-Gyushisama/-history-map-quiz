@@ -309,10 +309,18 @@ Raw pitch / persistence / output now implemented:
 - Game receives a device-generated gameId
 - Pitch[] is canonical raw pitch data with global sequence, inning/half, offense/defense team, batter, pitcher, pitch result, count before/after, outs and bases context
 - scorecards store pitchIds and render pitch marks from Pitch[]; legacy display marks remain only as compatibility fallback
-- strikeout / walk / in-play / dropped-third flows all connect to structured Play records
+- strikeout / walk / in-play / dropped-third / HBP flows connect to structured Play records
+- HBP is a one-tap terminal pitch event and stores raw result = hit_by_pitch
+- declared intentional walk is a one-tap no-pitch plate-appearance event; BB and IBB are both aggregated
+- balk is a RunnerEvent and defaults all occupied runners to one-base advancement
+- pickoff is a RunnerEvent with the runner's current base as the out base and a structured default 1-to-receiver fielding path
+- passed ball is aggregated to the catcher fielding record
 - IndexedDB stores the current snapshot and a gameId-keyed local game backup without blocking LIVE input
 - localStorage remains a compatibility fallback and fast boot mirror
 - startup restores the newer IndexedDB snapshot when available
+- manifest.webmanifest + service worker provide an offline application shell after the app has been successfully loaded/installed once
+- navigation uses network-first with cached index fallback; LIVE scoring itself has no network dependency
+- the header changes to "オフライン準備済" after serviceWorker.ready
 - printable A4 landscape scorebook output contains MY TEAM and opponent on separate pages and can be saved as PDF through the browser print flow
 
 Verification:
@@ -334,12 +342,30 @@ Verification:
 - fielder-choice liability-transfer test PASS: inherited runner forced out, replacement runner later scores, predecessor retains R/ER
 - WP, pitcher R/ER Undo, and Redo focused tests PASS
 
+Additional correction / complex-play implementation:
+- History has scorer correction UI for responsible pitcher and earned/unearned run
+- correction creates GameRevision/Audit-style revision data and is itself Undo/Redo reversible
+- arbitrary throw-path editor supports extended routes such as 6-4-3 and 5-2-5-1-2 without flattening them to a single text token
+- extended throw paths feed BOX notation and PO/A/DP fielding aggregation
+- fielder-choice inherited-runner liability transfer is stored structurally; ambiguous multi-liability cases remain scorer-review candidates
+
+Verification added:
+- scorer correction test PASS: predecessor charged ● -> correction to reliever + ○ -> Undo -> Redo
+- 6-4-3 extended route test PASS with PO/A/DP aggregation
+- 5-2-5-1-2 extended route test PASS with full path retained
+- HBP one-tap test PASS: PA/HBP/BF, raw Pitch result, forced runner advance
+- declared IBB one-tap test PASS: zero added pitches, BB/IBB/BF and first-base award
+- balk test PASS: automatic one-base RunnerAction and BK pitcher stat
+- pickoff test PASS: runner out at current base, Ⅰ marker, fieldingPath 1-3, A1/PO3
+- PWA source validation PASS: index JavaScript syntax, service-worker syntax, manifest JSON and service-worker registration
+- actual iPhone offline restart / airplane-mode acceptance test is still REQUIRED before the zero-network MVP criterion is marked complete
+
 Next:
-- explicit correction UI for pitcher-responsibility and earned-run review flags
-- special fielding sequences: rundowns, interference, appeals, post-error secondary plays
+- actual iPhone/PWA airplane-mode full-game acceptance test
+- special fielding sequences: interference, appeals, take-base awards, post-error secondary plays
+- explicit scorer adjustment for arbitrary batting/pitching/fielding statistics
 - cloud upload / idempotent reconciliation
-- printable/PDF score sheet
-- IndexedDB persistence
+- native/generated PDF export only if browser print-to-PDF is insufficient
 
 ## References
 - Visco mobile scorebook guide:
@@ -348,3 +374,9 @@ Next:
   https://www.mster.co.jp/products/visco_mobile/guide/appendix/scoremark/
 - Visco mobile score options:
   https://www.mster.co.jp/products/visco_mobile/guide/options/scoreoption/
+- Visco mobile play input:
+  https://www.mster.co.jp/products/visco_mobile/guide/play/
+- Visco mobile play confirmation / scorer adjustments:
+  https://www.mster.co.jp/products/visco_mobile/guide/play/playing-confirm/
+- Visco mobile stats detail:
+  https://www.mster.co.jp/products/visco_mobile/guide/stats/stats-detail/
