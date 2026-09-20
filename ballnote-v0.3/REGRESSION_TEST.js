@@ -793,6 +793,18 @@ globalThis.__testResult={after:after,undone:{
   equal(r.undone.a5, 0, 'Undo removes corrected assist');
 });
 
+test('pending review count is visible without slowing LIVE input', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'',runnerActions:[]};beginInplay('FC');commitInplay(true);
+globalThis.__testResult={count:pendingReviewCount(),live:live(),nav:bottom()};
+`);
+  equal(r.count, 1, 'pending review count');
+  equal(r.live.indexOf('要確認 1件')>=0, true, 'LIVE pending review shortcut');
+  equal(r.nav.indexOf('履歴 1')>=0, true, 'history nav pending count');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
