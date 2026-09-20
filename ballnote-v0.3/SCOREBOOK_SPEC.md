@@ -357,6 +357,18 @@ Raw pitch / persistence / output now implemented:
 - client marks uploaded only after matching server reconciliation
 - stale revision / mismatched gameId / mismatched idempotency key cannot mark uploaded
 - production API transport is intentionally not connected yet; see `SYNC_PROTOCOL.md`
+- LIVE Undo / Redo and last-input confirmation are pinned above the bottom navigation
+- complex-play completion returns the viewport to the pitch pad automatically
+- regulation innings are selectable as 6 / 7 / 9 with 7 as the default
+- tied regulation games continue to extra innings
+- if the home side leads after the top of the regulation inning or later, the unused bottom half is skipped
+- a home-side lead created during the bottom of regulation or later ends the game as a walkoff
+- time-limit / mercy-rule tournament variations remain manual because they are competition-specific
+- complex runner plays support "state only -> next pitch" quick commit
+- quick commit updates bases / outs / runs immediately and stores Play.needsReview=true
+- pending quick commits are visible in History and can be marked reviewed without changing the recorded result
+- review resolution creates a revision record and is Undo / Redo reversible
+- Undo / Redo snapshots are held as serialized JSON strings (max 80) so ordinary pitch entry avoids an immediate stringify+parse deep clone
 
 Verification:
 - syntax check PASS
@@ -420,24 +432,32 @@ Verification added:
   - extended 6-4-3 route
 
 - GitHub Actions regression suite is installed on the development branch
-- deterministic regression suite currently covers 9 scenarios:
+- deterministic regression suite currently covers 14 scenarios:
   - top/bottom transition + Undo/Redo
-  - core multi-runner FC
+  - core multi-runner FC + atomic Undo/Redo
   - two-strike pinch-hit attribution
   - inherited-runner pitcher responsibility
   - rundown + post-error secondary fielding
   - HBP / PB / batting interference
   - full 7-inning and 9-inning progression
   - local restart + sync reconciliation guard
+  - full offline 7-inning game with mid-game save/load restart
   - derived batting / pitching analytics formulas
-- latest completed regression run: 9 / 9 PASS
+  - regulation inning / extra inning / walkoff finish
+  - pinned one-tap LIVE Undo/Redo + non-contact BOX rendering
+  - next-pitch-first quick commit + pending review
+  - quick-play review resolution + Undo
+- latest completed GitHub Actions regression run: 14 / 14 PASS
+- additional focused serialized-snapshot test PASS:
+  - one-pitch Undo / Redo
+  - multi-runner play Undo / Redo
 
 Next:
+- add actual past-play correction that changes a quick-committed play and deterministically recalculates downstream state
 - implement authenticated server endpoint described in SYNC_PROTOCOL.md
 - server-side idempotency store and authoritative reconciliation
 - server-side event validation / aggregation
-- expand scorer correction UI for exceptional appeal / interference responsibility cases
-- iPhone / iPad real-device tap-speed and restart validation before public release
+- iPhone / iPad real-device tap-speed, airplane-mode restart, and long-game memory validation before public release
 
 ## References
 - Visco mobile scorebook guide:
