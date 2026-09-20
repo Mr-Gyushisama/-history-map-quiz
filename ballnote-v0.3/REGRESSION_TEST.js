@@ -805,6 +805,19 @@ globalThis.__testResult={count:pendingReviewCount(),live:live(),nav:bottom()};
   equal(r.nav.indexOf('履歴 1')>=0, true, 'history nav pending count');
 });
 
+test('BOX surfaces unresolved quick-commit reviews', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'',runnerActions:[]};beginInplay('FC');commitInplay(true);
+st.view='box';
+globalThis.__testResult={html:box(),count:pendingReviewCount()};
+`);
+  equal(r.count, 1, 'BOX pending count');
+  equal(r.html.indexOf('要確認 1件')>=0, true, 'BOX pending warning');
+  equal(r.html.indexOf('履歴・訂正を開く')>=0, true, 'BOX correction shortcut');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
