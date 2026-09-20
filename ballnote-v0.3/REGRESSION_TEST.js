@@ -722,9 +722,37 @@ globalThis.__testResult={before:before,rebuilt:rebuilt,undone:undone};
   equal(r.before.playErrorFielder, '6', 'play responsible fielder');
   equal(r.before.e6, 1, 'selected fielder error');
   equal(r.rebuilt.e6, 1, 'rebuild preserves selected fielder error');
-  equal(r.undone.s, 2, 'Undo restores two-strike count');
+  equal(r.undone.count.s, 2, 'Undo restores two-strike count');
   equal(r.undone.plays, 0, 'Undo removes dropped-third play');
   equal(r.undone.e6, 0, 'Undo removes error');
+});
+
+test('historical scoring correction updates RBI earned run and Undo', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('3B');
+st.play={shape:'F',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('SF');commitInplay(false);
+var p=st.g.plays[st.g.plays.length-1];
+var before={rbi:st.g.stats.p2.RBI,marker:st.g.scorecards[0].finalMarker,r:st.g.pitcherStats['unknown_opp_pitcher'].R,er:st.g.pitcherStats['unknown_opp_pitcher'].ER};
+var edited=cp(p.runnerActions);
+for(var i=0;i<edited.length;i++)if(edited[i].playerId==='p1'){edited[i].rbi=false;edited[i].rbiOverridden=true;edited[i].earned=false;edited[i].earnedOverridden=true}
+var applied=applyPlayCorrection(p.id,p.result,edited);
+var after={applied:applied.ok,rbi:st.g.stats.p2.RBI,marker:st.g.scorecards[0].finalMarker,r:st.g.pitcherStats['unknown_opp_pitcher'].R,er:st.g.pitcherStats['unknown_opp_pitcher'].ER,overrides:playById(p.id).scorerOverrides.length};
+undo();
+var undone={rbi:st.g.stats.p2.RBI,marker:st.g.scorecards[0].finalMarker,r:st.g.pitcherStats['unknown_opp_pitcher'].R,er:st.g.pitcherStats['unknown_opp_pitcher'].ER};
+globalThis.__testResult={before:before,after:after,undone:undone};
+`);
+  equal(r.before.rbi, 1, 'sac fly initially credits RBI');
+  equal(r.before.marker, '●', 'run initially earned');
+  equal(r.after.applied, true, 'historical scoring correction applies');
+  equal(r.after.rbi, 0, 'RBI removed');
+  equal(r.after.marker, '○', 'run becomes unearned');
+  equal(r.after.r, 1, 'pitcher run remains');
+  equal(r.after.er, 0, 'pitcher earned run removed');
+  equal(r.after.overrides, 1, 'scorer override stored in Play');
+  equal(r.undone.rbi, 1, 'Undo restores RBI');
+  equal(r.undone.marker, '●', 'Undo restores earned marker');
+  equal(r.undone.er, 1, 'Undo restores ER');
 });
 
 let failed = 0;
