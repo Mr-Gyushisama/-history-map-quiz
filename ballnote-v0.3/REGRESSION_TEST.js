@@ -435,6 +435,49 @@ globalThis.__testResult={before:before,after:after,undone:undone};
   equal(r.undone.resolved, false, 'Undo reopens review');
 });
 
+test('home run credits batter RBI including self', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'F',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('HR');
+globalThis.__testResult={rbi:st.g.stats.p1.RBI,runs:st.g.stats.p1.R,score:scoreOf('self')};
+`);
+  equal(r.rbi, 1, 'solo HR should credit one RBI');
+  equal(r.runs, 1, 'solo HR should credit one run');
+  equal(r.score, 1, 'solo HR should score one run');
+});
+
+test('dry-run replay reproduces mixed live state from initial checkpoint', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';
+ensureReplayCheckpoint(false);
+var cp0=cp(st.g.replayCheckpoints[0]);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+prepareRunnerEvent('stolen_base');commitRunnerEvent();
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');commitInplay(false);
+for(var i=0;i<6;i++)pitch('strike');
+commitDefensiveSub('p9','p10');
+for(var j=0;j<9;j++)pitch('strike');
+var check=validateReplayFromCheckpoint(cp0);
+globalThis.__testResult={ok:check.ok,sim:replayOperationalFingerprint(check.simulated),cur:replayOperationalFingerprint(check.current)};
+`);
+  equal(r.ok, true, 'dry-run replay should match live state');
+  equal(r.sim, r.cur, 'replay fingerprint');
+});
+
+test('replay checkpoints stay compact and appear every 12 plays', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+ensureReplayCheckpoint(false);
+for(var i=0;i<36;i++)pitch('strike');
+var last=st.g.replayCheckpoints[st.g.replayCheckpoints.length-1];
+globalThis.__testResult={count:st.g.replayCheckpoints.length,plays:st.g.plays.length,lastPlayCount:last.playCount,nested:typeof last.state.replayCheckpoints!=='undefined'};
+`);
+  equal(r.plays, 12, 'fixture should create 12 plays');
+  equal(r.count, 2, 'initial + 12-play checkpoint');
+  equal(r.lastPlayCount, 12, 'checkpoint play count');
+  equal(r.nested, false, 'checkpoint must not recursively contain checkpoints');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
