@@ -381,6 +381,60 @@ globalThis.__testResult={resolved:resolved,undo:{flag:playById(id).reviewResolve
   equal(r.undo.revisions, 0, 'Undo should restore revision list');
 });
 
+test('deferred fielding-path correction reassigns fielding stats and undoes cleanly', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('FC');
+st.play.runnerActions[0].outBy='3';
+commitInplay(true);
+var id=st.g.plays[st.g.plays.length-1].id;
+var before={
+  path:playById(id).battedBall.throwPath.join('-'),
+  a6:st.g.fieldingStats['unknown_opp_pos_6'].A,
+  po3:st.g.fieldingStats['unknown_opp_pos_3'].PO,
+  po4:st.g.fieldingStats['unknown_opp_pos_4']?st.g.fieldingStats['unknown_opp_pos_4'].PO:0
+};
+beginPlayFieldingEdit(id);
+st.playEditDraft.fieldingPath=['6','4'];
+commitPlayFieldingEdit();
+var after={
+  path:playById(id).battedBall.throwPath.join('-'),
+  outBy:playById(id).runnerActions[0].outBy,
+  a6:st.g.fieldingStats['unknown_opp_pos_6'].A,
+  po3:st.g.fieldingStats['unknown_opp_pos_3'].PO,
+  po4:st.g.fieldingStats['unknown_opp_pos_4'].PO,
+  resolved:playById(id).reviewResolved,
+  revisionType:st.g.revisions[st.g.revisions.length-1].type
+};
+undo();
+var undone={
+  path:playById(id).battedBall.throwPath.join('-'),
+  outBy:playById(id).runnerActions[0].outBy,
+  a6:st.g.fieldingStats['unknown_opp_pos_6'].A,
+  po3:st.g.fieldingStats['unknown_opp_pos_3'].PO,
+  po4:st.g.fieldingStats['unknown_opp_pos_4']?st.g.fieldingStats['unknown_opp_pos_4'].PO:0,
+  resolved:playById(id).reviewResolved
+};
+globalThis.__testResult={before:before,after:after,undone:undone};
+`);
+  equal(r.before.path, '6-3', 'initial mistaken path');
+  equal(r.before.a6, 1, 'initial shortstop assist');
+  equal(r.before.po3, 1, 'initial wrong putout');
+  equal(r.after.path, '6-4', 'corrected path');
+  equal(r.after.outBy, '4', 'corrected runner outBy');
+  equal(r.after.a6, 1, 'assist remains on shortstop');
+  equal(r.after.po3, 0, 'old putout removed');
+  equal(r.after.po4, 1, 'new putout credited');
+  equal(r.after.resolved, true, 'correction resolves pending review');
+  equal(r.after.revisionType, 'play_fielding_correction', 'correction revision type');
+  equal(r.undone.path, '6-3', 'Undo restores old path');
+  equal(r.undone.outBy, '3', 'Undo restores old outBy');
+  equal(r.undone.po3, 1, 'Undo restores old putout');
+  equal(r.undone.po4, 0, 'Undo removes corrected putout');
+  equal(r.undone.resolved, false, 'Undo reopens review');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
