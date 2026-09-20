@@ -818,6 +818,41 @@ globalThis.__testResult={html:box(),count:pendingReviewCount()};
   equal(r.html.indexOf('履歴・訂正を開く')>=0, true, 'BOX correction shortcut');
 });
 
+test('double steal records two RunnerActions and undoes atomically', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');commitInplay(false);
+prepareRunnerEvent('stolen_base');
+for(var i=0;i<st.runnerPlay.actions.length;i++)selectRunnerAction(i);
+commitRunnerEvent();
+var after={
+  first:st.g.bases.first,second:st.g.bases.second,third:st.g.bases.third,
+  sb1:st.g.stats.p1.SB,sb2:st.g.stats.p2.SB,
+  actions:st.g.runnerEvents[0].actions.length,
+  p1Last:st.g.scorecards[0].advances[st.g.scorecards[0].advances.length-1].to,
+  p2Last:st.g.scorecards[1].advances[st.g.scorecards[1].advances.length-1].to
+};
+undo();
+var undone={first:st.g.bases.first,second:st.g.bases.second,third:st.g.bases.third,sb1:st.g.stats.p1.SB,sb2:st.g.stats.p2.SB,events:st.g.runnerEvents.length};
+globalThis.__testResult={after:after,undone:undone};
+`);
+  equal(r.after.first, null, 'first should clear');
+  equal(r.after.second, 'p1', 'first-base runner steals second');
+  equal(r.after.third, 'p2', 'second-base runner steals third');
+  equal(r.after.sb1, 1, 'runner one SB');
+  equal(r.after.sb2, 1, 'runner two SB');
+  equal(r.after.actions, 2, 'one event stores two RunnerActions');
+  equal(r.after.p1Last, 'second', 'BOX p1 advance');
+  equal(r.after.p2Last, 'third', 'BOX p2 advance');
+  equal(r.undone.first, 'p1', 'Undo restores first runner');
+  equal(r.undone.second, 'p2', 'Undo restores second runner');
+  equal(r.undone.third, null, 'Undo restores third empty');
+  equal(r.undone.sb1, 0, 'Undo removes p1 SB');
+  equal(r.undone.sb2, 0, 'Undo removes p2 SB');
+  equal(r.undone.events, 0, 'Undo removes double-steal event');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
