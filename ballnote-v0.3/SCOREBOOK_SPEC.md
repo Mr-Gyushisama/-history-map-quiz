@@ -108,15 +108,29 @@ Current runner-only reasons:
 The rendered scorebook must draw advancement on the central diamond and place the reason on the relevant advancement segment where practical.
 
 ## 7. Substitutions
-Store substitutions as events, not as overwritten lineup values.
-Required:
+Store substitutions as events and preserve appearance history even when the active lineup slot changes.
+
+Current implementation:
 - pinch hitter
 - pinch runner
+- substitution timing stores inning + ball/strike count
+- pinch hitter substitution is written into the scorecard count area
+- pinch runner continues the original runner scorecard through activeRunnerId while run/SB/CS stats belong to the substitute runner
+- batting-order display groups starter and substitutes under the same order
+- Undo/Redo restores lineup, bases, bench, appearance history, scorecard markers, and substitution events
+
+Mid-count batting attribution:
+- when a batter is replaced after two strikes and the substitute strikes out, strikeout + AB are charged to the player who was batting when two strikes had been reached
+- if the substitute completes the PA with a non-strikeout result, the result belongs to the substitute
+- strikeoutOwnerId is reset at the end of the PA
+
+Still required:
 - defensive substitution
 - position change
 - pitching change
 - simultaneous changes
-Scorebook rendering must show the timing in the count area and preserve player appearance history.
+
+Those defensive changes will be connected after opponent-side / half-inning state exists, because otherwise the event cannot be attached to the correct defensive half-inning reliably.
 
 ## 8. Data model
 Canonical data is structured, not the rendered notation.
@@ -215,11 +229,15 @@ Added after reference-scorebook review:
 - dropped-third eligibility follows the rule: batter may become a runner when first base is unoccupied or when there are two outs
 - called or swinging third strike may both enter the dropped-third flow
 - legacy local game stats are migrated with SH / SF / GDP / SB / CS fields on load
+- pinch hitter and pinch runner events are stored with inning/count timing
+- scorebook batting-order rows preserve starter + substitute history
+- pinch-runner identity is separated from the original hitter's scorecard ownership
+- two-strike pinch-hit strikeout attribution follows the scoring rule by retaining the strikeout owner
 
 Next:
+- opponent-side full scoring and explicit top/bottom half-inning state
+- defensive substitution / position change / pitching change / simultaneous changes
 - expanded error and FC responsibility rules
-- substitutions and position changes
-- opponent-side full scoring
 - printable/PDF score sheet
 - IndexedDB persistence
 
