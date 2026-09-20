@@ -92,6 +92,11 @@ A scorecard must preserve:
 
 Runner-only events are attached to the original runner scorecard rather than creating a fake new plate appearance.
 
+For advancement caused by batting:
+- normal advancement is rendered with the responsible batter's order as (1) to (9)
+- when RBI is credited, the batter order is rendered as ① to ⑨
+- the responsible batter order and RBI flag remain structured data, not hard-coded score text
+
 Current runner-only reasons:
 - stolen_base => SB
 - caught_stealing => CS
@@ -171,6 +176,8 @@ Added after reference-scorebook review:
 - third-out processing marks all remaining runners with ℓ
 - walk force advances now use structured RunnerAction records rather than direct base mutation
 - runner-event Undo/Redo uses the same full-game snapshot path
+- batting-caused advancement stores responsibleBatterOrder
+- BOX renders normal advancement as (n) and RBI advancement as circled ①-⑨
 
 Next:
 - sacrifice bunt / sacrifice fly official rendering
