@@ -244,6 +244,28 @@ globalThis.__testResult={expected:{gameId:gameId,revision:rev,b:count.b},restore
   equal(r.status, 'uploaded', 'matching reconciliation uploaded state');
 });
 
+
+test('derived batting and pitching analytics', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='data';
+st.g.stats.p1.PA=7;st.g.stats.p1.AB=4;st.g.stats.p1.H=2;st.g.stats.p1.BB=1;st.g.stats.p1.HBP=1;st.g.stats.p1.SF=1;
+st.g.scorecards=[
+ {playerId:'p1',result:'1B'},
+ {playerId:'p1',result:'2B'}
+];
+var bd=battingDerived('p1');
+var pd=pitcherDerived({OUTS:6,ER:2,H:3,BB:1});
+globalThis.__testResult={bd:bd,pd:pd};
+`);
+  equal(r.bd.AVG, '0.500', 'AVG');
+  equal(r.bd.OBP, '0.571', 'OBP');
+  equal(r.bd.SLG, '0.750', 'SLG');
+  equal(r.bd.OPS, '1.321', 'OPS');
+  equal(r.bd.TB, 3, 'total bases');
+  equal(r.pd.ERA9, '9.00', 'ERA 9-inning equivalent');
+  equal(r.pd.WHIP, '2.00', 'WHIP');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
