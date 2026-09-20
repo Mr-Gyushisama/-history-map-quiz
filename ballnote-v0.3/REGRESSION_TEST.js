@@ -853,6 +853,27 @@ globalThis.__testResult={after:after,undone:undone};
   equal(r.undone.events, 0, 'Undo removes double-steal event');
 });
 
+test('two-out force third out blocks run while time-play tag remains scorer judgment', () => {
+  const r = runScenario(`
+var out={};
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.g.outs=2;st.g.bases={first:'p1',second:null,third:'p3'};
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'FC',runnerActions:defaultRunnerActions('FC')};
+out.force={error:validateRunnerActions()};
+
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.g.outs=2;st.g.bases={first:null,second:'p2',third:'p3'};
+st.play={shape:'L',fielder:'8',target:'',throwPath:['8','5'],result:'1B',runnerActions:defaultRunnerActions('1B')};
+for(var i=0;i<st.play.runnerActions.length;i++){
+  var x=st.play.runnerActions[i];
+  if(!x.isBatter&&x.playerId==='p2'){x.to='out';x.outcome='out';x.outAt='third';x.outBy='5';x.outType='tag'}
+}
+out.timePlay={error:validateRunnerActions()};
+globalThis.__testResult=out;
+`);
+  equal(r.force.error.indexOf('第三アウト')>=0, true, 'force third out must reject run');
+  equal(r.timePlay.error, '', 'tag time play remains scorer judgment');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
