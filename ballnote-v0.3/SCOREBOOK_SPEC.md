@@ -322,6 +322,18 @@ Additional official-scoring coverage now implemented:
 - post-error secondary outs are stored as multiple FieldingAction records inside one Play
 - HBP / IBB batter scorecards preserve the home-to-first advancement path
 
+Derived analytics now implemented:
+- team R / H / E
+- batting 1B / 2B / 3B / HR / TB
+- AVG
+- OBP = (H + BB + HBP) / (AB + BB + HBP + SF)
+- SLG
+- OPS
+- pitcher ERA shown explicitly as 9-inning equivalent = ER x 27 / OUTS
+- WHIP = (H + BB) x 3 / OUTS
+- batting interference reach is excluded from the OBP numerator and denominator
+- youth-game inning length is not silently substituted into ERA; the display says 9-inning equivalent
+
 Raw pitch / persistence / output now implemented:
 - Game receives a device-generated gameId
 - Pitch[] is canonical raw pitch data with global sequence, inning/half, offense/defense team, batter, pitcher, pitch result, count before/after, outs and bases context
@@ -408,7 +420,7 @@ Verification added:
   - extended 6-4-3 route
 
 - GitHub Actions regression suite is installed on the development branch
-- deterministic regression suite currently covers 8 scenarios:
+- deterministic regression suite currently covers 9 scenarios:
   - top/bottom transition + Undo/Redo
   - core multi-runner FC
   - two-strike pinch-hit attribution
@@ -417,7 +429,8 @@ Verification added:
   - HBP / PB / batting interference
   - full 7-inning and 9-inning progression
   - local restart + sync reconciliation guard
-- latest completed regression run: 8 / 8 PASS
+  - derived batting / pitching analytics formulas
+- latest completed regression run: 9 / 9 PASS
 
 Next:
 - implement authenticated server endpoint described in SYNC_PROTOCOL.md
