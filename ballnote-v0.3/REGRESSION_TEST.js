@@ -478,6 +478,27 @@ globalThis.__testResult={count:st.g.replayCheckpoints.length,plays:st.g.plays.le
   equal(r.nested, false, 'checkpoint must not recursively contain checkpoints');
 });
 
+test('replay preview blocks downstream runner-state conflicts', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+var cp0=cp(st.g.replayCheckpoints[0]);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'',runnerActions:[]};beginInplay('FC');commitInplay(true);
+var target=cp(st.g.plays[st.g.plays.length-1]);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');commitInplay(false);
+var baseline=replayLedgerPreview(cp0,{});
+var edited=cp(target);
+for(var i=0;i<edited.runnerActions.length;i++)if(edited.runnerActions[i].playerId==='p1'){edited.runnerActions[i].outcome='safe';edited.runnerActions[i].to='second';edited.runnerActions[i].outAt='';edited.runnerActions[i].outBy=''}
+var overrides={};overrides[target.id]=edited;
+var preview=replayLedgerPreview(cp0,overrides);
+globalThis.__testResult={baseline:baseline.conflicts,preview:preview.conflicts};
+`);
+  equal(r.baseline.length, 0, 'baseline replay should be conflict free');
+  equal(r.preview.length, 1, 'edited replay should detect one downstream conflict');
+  equal(r.preview[0].type, 'destination_occupied', 'conflict type');
+  equal(r.preview[0].base, 'second', 'conflict base');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
