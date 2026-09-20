@@ -755,6 +755,44 @@ globalThis.__testResult={before:before,after:after,undone:undone};
   equal(r.undone.er, 1, 'Undo restores ER');
 });
 
+test('historical responsible-fielder correction updates BOX stats and Undo', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');
+var p=st.g.plays[st.g.plays.length-1],id=p.id;
+beginPlayFieldingEdit(id);
+setPlayEditFielder('5');
+st.playEditDraft.fieldingPath=['5','3'];
+commitPlayFieldingEdit();
+var after={
+  fielder:p.battedBall.fieldedBy,path:p.battedBall.throwPath.join('-'),
+  notation:st.g.scorecards[0].notation,
+  a6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].A:0,
+  a5:st.g.fieldingStats['unknown_opp_pos_5']?st.g.fieldingStats['unknown_opp_pos_5'].A:0,
+  po3:st.g.fieldingStats['unknown_opp_pos_3'].PO
+};
+undo();
+var pu=st.g.plays[st.g.plays.length-1];
+globalThis.__testResult={after:after,undone:{
+  fielder:pu.battedBall.fieldedBy,path:pu.battedBall.throwPath.join('-'),
+  notation:st.g.scorecards[0].notation,
+  a6:st.g.fieldingStats['unknown_opp_pos_6'].A,
+  a5:st.g.fieldingStats['unknown_opp_pos_5']?st.g.fieldingStats['unknown_opp_pos_5'].A:0
+}};
+`);
+  equal(r.after.fielder, '5', 'responsible fielder corrected');
+  equal(r.after.path, '5-3', 'throw path corrected');
+  equal(r.after.notation, '5-3', 'BOX notation corrected');
+  equal(r.after.a6, 0, 'old assist removed');
+  equal(r.after.a5, 1, 'new assist added');
+  equal(r.after.po3, 1, 'putout retained');
+  equal(r.undone.fielder, '6', 'Undo restores fielder');
+  equal(r.undone.path, '6-3', 'Undo restores path');
+  equal(r.undone.notation, '6-3', 'Undo restores BOX notation');
+  equal(r.undone.a6, 1, 'Undo restores old assist');
+  equal(r.undone.a5, 0, 'Undo removes corrected assist');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
