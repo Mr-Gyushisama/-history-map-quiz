@@ -129,7 +129,33 @@ Score notation is generated from:
 - SubstitutionEvent[]
 - FinalResult
 
-## 9. Undo / correction
+## 9. Strikeout / dropped third strike
+Strikeout display and structured data are separated:
+- called strikeout => K
+- swinging strikeout => reversed K
+- strikeoutType is canonical and the symbol is rendered from it
+
+An uncaught third strike is recorded as a strikeout even when the batter reaches first.
+The batter may become a runner when:
+- first base is unoccupied; or
+- there are two outs.
+
+Cause is stored independently:
+- wild_pitch
+- passed_ball
+- error
+
+The same Play may also contain RunnerAction records for existing runners.
+
+## 10. Sacrifice / double play
+Current scoring rules:
+- SH: before two outs, at least one runner advances, batter is recorded out in the current MVP path, PA increments, AB does not
+- SF: before two outs, at least one runner scores, batter is out, PA increments, AB does not
+- GDP: at least two outs in the same continuous Play, PA and AB increment
+
+Scorer judgment remains authoritative for borderline sacrifice/error/FC cases. Future scorer override will support sacrifice credit where the batter reaches because of an error or unsuccessful play on another runner.
+
+## 11. Undo / correction
 All live operations must be reversible immediately.
 A correction recomputes:
 - count
@@ -141,7 +167,7 @@ A correction recomputes:
 - batting stats
 - pitching stats
 
-## 10. v0.3 implementation scope
+## 12. v0.3 implementation scope
 Implemented in prototype branch:
 - pitch marks retained per PA
 - ground/fly/liner symbols
@@ -178,11 +204,20 @@ Added after reference-scorebook review:
 - runner-event Undo/Redo uses the same full-game snapshot path
 - batting-caused advancement stores responsibleBatterOrder
 - BOX renders normal advancement as (n) and RBI advancement as circled ①-⑨
+- sacrifice bunt (SH) and sacrifice fly (SF) use dedicated batting results
+- SH / SF are excluded from AB while remaining plate appearances
+- sacrifice validation prevents two-out sacrifices and requires the relevant runner advance / run
+- grounded-into-double-play (GDP) stores two or more outs in the same Play and counts as AB
+- inning-ending GDP validation prevents a run from being counted when the batter-runner is the third out
+- called strikeout renders as K
+- swinging strikeout renders as reversed K
+- uncaught third strike / dropped-third-strike flow stores strike type separately from WP / PB / E cause
+- dropped-third eligibility follows the rule: batter may become a runner when first base is unoccupied or when there are two outs
+- called or swinging third strike may both enter the dropped-third flow
+- legacy local game stats are migrated with SH / SF / GDP / SB / CS fields on load
 
 Next:
-- sacrifice bunt / sacrifice fly official rendering
 - expanded error and FC responsibility rules
-- double plays and dropped-third-strike cases
 - substitutions and position changes
 - opponent-side full scoring
 - printable/PDF score sheet
