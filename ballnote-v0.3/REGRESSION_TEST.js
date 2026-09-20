@@ -693,6 +693,40 @@ globalThis.__testResult=out;
   equal(r.FC.type, 'result_requires_runner', 'FC conflict type');
 });
 
+test('dropped-third error attributes E to selected fielder and survives rebuild', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+pitch('strike');pitch('strike');
+prepareDroppedThird();
+setDroppedCause('error');
+setDroppedErrorFielder('6');
+commitDroppedThird();
+var before={
+  first:st.g.bases.first,
+  result:st.g.scorecards[0].result,
+  cause:st.g.scorecards[0].droppedThirdCause,
+  errorFielder:st.g.scorecards[0].droppedThirdErrorFielder,
+  e6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].E:0,
+  playErrorFielder:st.g.plays[st.g.plays.length-1].errorFielderNumber
+};
+rebuildAllDerivedFromLedger();
+var rebuilt={e6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].E:0};
+undo();
+var undone={count:cp(st.g.count),plays:st.g.plays.length,e6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].E:0};
+globalThis.__testResult={before:before,rebuilt:rebuilt,undone:undone};
+`);
+  equal(r.before.first, 'p1', 'batter reaches first on dropped-third error');
+  equal(r.before.result, 'K', 'scorecard remains strikeout notation');
+  equal(r.before.cause, 'error', 'dropped-third cause');
+  equal(r.before.errorFielder, '6', 'scorecard responsible fielder');
+  equal(r.before.playErrorFielder, '6', 'play responsible fielder');
+  equal(r.before.e6, 1, 'selected fielder error');
+  equal(r.rebuilt.e6, 1, 'rebuild preserves selected fielder error');
+  equal(r.undone.s, 2, 'Undo restores two-strike count');
+  equal(r.undone.plays, 0, 'Undo removes dropped-third play');
+  equal(r.undone.e6, 0, 'Undo removes error');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
