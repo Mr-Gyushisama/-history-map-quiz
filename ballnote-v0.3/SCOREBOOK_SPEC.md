@@ -315,6 +315,11 @@ Additional official-scoring coverage now implemented:
 - forced run on batting interference can credit RBI
 - error / batting interference / obstruction / passed-ball paths default the affected runner to non-earned-run eligibility
 - scorer can still override responsible pitcher and earned/unearned result through the correction UI
+- rare runner events are routed through a separate runner-special flow so common LIVE entry remains fast
+- runner-special reasons currently include pickoff, rundown, appeal out, runner interference, and obstruction
+- runner events preserve outType and optional explicit fieldingPath
+- rundown / appeal fielding path aggregates unique assists and final putout without flattening the event to a display string
+- post-error secondary outs are stored as multiple FieldingAction records inside one Play
 - HBP / IBB batter scorecards preserve the home-to-first advancement path
 
 Raw pitch / persistence / output now implemented:
@@ -357,6 +362,16 @@ Verification:
 - passed-ball fielding test PASS: catcher PB increments once per PB event
 - passed-ball earned-run test PASS: later score defaults to ○ / pitcher R without ER
 - batting-interference test PASS: PA + 妨出, no AB, fielder E, forced RBI, default ○ / non-earned
+- runner-special flow PASS:
+  - rundown with explicit 1-3-6-3 route => PO/A aggregation + runner out marker
+  - appeal out => structured outType=appeal + selected fielder PO
+  - runner interference => structured outType=interference + one-step Undo restoration
+  - obstruction advancement => affected runner defaults to ○ / non-earned if later scoring
+- post-error secondary-play test PASS:
+  - E6 followed by 6-5 runner out remains one Play
+  - FieldingAction[] contains separate error and out actions
+  - fielding totals: E6 + A6 + PO5
+  - Undo restores bases / outs / scorecard
 
 Additional correction / complex-play implementation:
 - History has scorer correction UI for responsible pitcher and earned/unearned run
@@ -387,10 +402,9 @@ Verification added:
   - extended 6-4-3 route
 
 Next:
-- generic runner-special play flow for rundowns / pickoffs / appeal outs / runner interference / obstruction
-- post-error secondary-play modeling with multiple FieldingAction records in one Play
 - cloud upload with idempotent reconciliation and server-confirmed uploaded state
-- broader automated regression suite around full 7/9-inning game completion and restart recovery
+- broader automated regression suite around complete 7/9-inning game completion and restart recovery
+- additional scorer-override UI for unusual appeal/interference responsibility cases
 
 ## References
 - Visco mobile scorebook guide:
