@@ -359,6 +359,16 @@ Verification added:
 - pickoff test PASS: runner out at current base, Ⅰ marker, fieldingPath 1-3, A1/PO3
 - PWA source validation PASS: index JavaScript syntax, service-worker syntax, manifest JSON and service-worker registration
 - actual iPhone offline restart / airplane-mode acceptance test is still REQUIRED before the zero-network MVP criterion is marked complete
+- service-worker offline-fallback synthetic test PASS: shell precache exists and failed navigation resolves to cached index.html
+- consolidated regression suite PASS on the same branch revision:
+  - top/bottom transition + Undo/Redo
+  - multi-runner 1-out first/third -> 6-4 force + run + batter safe
+  - HBP / IBB / BK
+  - pickoff 1-3
+  - two-strike pinch-hit strikeout attribution
+  - pinch runner + SB ownership
+  - inherited-runner pitcher responsibility + scorer correction Undo
+  - extended 6-4-3 route
 
 Next:
 - actual iPhone/PWA airplane-mode full-game acceptance test
