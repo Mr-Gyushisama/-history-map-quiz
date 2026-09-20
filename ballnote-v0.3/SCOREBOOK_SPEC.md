@@ -142,8 +142,28 @@ Current opponent-roster / substitution implementation:
 - appearance history, bench movement, substitution events, batchId, and scorecard timing are kept per team
 - dual-team substitution routing has a focused logic test
 
+Pitching aggregation now implemented:
+- per-pitcher pitches
+- batters faced
+- hits allowed
+- walks
+- strikeouts
+- pitching outs with baseball IP notation
+- pitcher identity follows the active defensive P position
+- when the pitcher is not registered, stats are retained under an explicit unknown-pitcher bucket rather than guessed
+- inherited-runner runs and earned runs are intentionally not auto-assigned yet
+
+Fielding aggregation now implemented from structured play data:
+- PO from the fielder who completes each recorded out
+- A from the structured throw path, with at most one assist per fielder in the same play
+- E from explicit error result + responsible fielder
+- DP participation for fielders involved in a recorded multi-out play
+- fielding percentage = (PO + A) / (PO + A + E)
+- normal strikeout credits the catcher with the rules-based putout
+
 Still required:
-- advanced pitcher responsibility / inherited-runner statistics
+- advanced pitcher responsibility / inherited-runner and earned-run logic
+- scorer override for ambiguous fielding sequences, rundowns, interference, and post-error secondary plays
 
 ## 8. Full-game half-inning state
 The canonical live state now distinguishes:
@@ -277,7 +297,9 @@ Added after reference-scorebook review:
 - substitution routing now works for either offense or defense team
 
 Next:
-- per-pitcher aggregation and inherited-runner responsibility
+- raw Pitch[] as canonical pitch data instead of display marks alone
+- IndexedDB primary persistence with localStorage fallback
+- inherited-runner / earned-run responsibility
 - expanded error and FC responsibility rules
 - printable/PDF score sheet
 - IndexedDB persistence
