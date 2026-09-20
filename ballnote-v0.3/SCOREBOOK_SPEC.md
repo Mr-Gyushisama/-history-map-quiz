@@ -44,6 +44,11 @@ BALLNOTEの「BOX」は単なる得点集計表ではなく、試合を打席単
 - Foul: －
 These are configurable display symbols; raw pitch result remains canonical.
 
+### Strikeout result symbols (BALLNOTE scorebook convention)
+- Strikeout: K
+- Swinging strikeout: mirrored K
+The raw plate-appearance result remains structured (`strikeout_type`) and the scorebook renderer controls the glyph.
+
 ## 5. Examples
 ### Groundout
 Internal:
