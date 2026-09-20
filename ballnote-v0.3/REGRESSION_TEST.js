@@ -245,6 +245,36 @@ globalThis.__testResult={expected:{gameId:gameId,revision:rev,b:count.b},restore
 });
 
 
+test('offline full 7-inning game survives mid-game restart', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';
+st.play={shape:'F',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('HR');
+for(var i=0;i<9;i++)pitch('strike');
+for(var j=0;j<9;j++)pitch('strike');
+for(var k=0;k<54;k++)pitch('strike');
+var before={gameId:st.g.gameId,inning:st.g.inning,half:st.g.half,self:scoreOf('self'),opp:scoreOf('opp'),cards:st.g.scorecards.length,bi:st.g.bi,oppBi:st.g.oppBi};
+save();
+st.g=null;load();
+var restored={gameId:st.g.gameId,inning:st.g.inning,half:st.g.half,self:scoreOf('self'),opp:scoreOf('opp'),cards:st.g.scorecards.length,bi:st.g.bi,oppBi:st.g.oppBi};
+for(var z=0;z<54;z++)pitch('strike');
+globalThis.__testResult={before:before,restored:restored,final:{over:st.g.over,reason:st.g.gameEndReason,inning:st.g.inning,half:st.g.half,self:scoreOf('self'),opp:scoreOf('opp'),cards:st.g.scorecards.length,sync:st.g.sync.status}};
+`);
+  equal(r.before.gameId, r.restored.gameId, 'restart must preserve gameId');
+  equal(r.before.inning, 5, 'restart checkpoint inning');
+  equal(r.before.half, 'top', 'restart checkpoint half');
+  equal(r.restored.inning, r.before.inning, 'restart inning');
+  equal(r.restored.half, r.before.half, 'restart half');
+  equal(r.restored.self, 1, 'restart score');
+  equal(r.restored.cards, r.before.cards, 'restart scorecards');
+  equal(r.restored.bi, r.before.bi, 'restart self batting index');
+  equal(r.restored.oppBi, r.before.oppBi, 'restart opponent batting index');
+  equal(r.final.over, true, '7-inning game should finish');
+  equal(r.final.reason, 'regulation_complete', 'away win regulation finish');
+  equal(r.final.self, 1, 'final self score');
+  equal(r.final.opp, 0, 'final opponent score');
+  equal(r.final.sync, 'queued_local', 'finished offline game should remain locally queued');
+});
+
 test('derived batting and pitching analytics', () => {
   const r = runScenario(`
 st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='data';
