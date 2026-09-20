@@ -124,15 +124,39 @@ Mid-count batting attribution:
 - if the substitute completes the PA with a non-strikeout result, the result belongs to the substitute
 - strikeoutOwnerId is reset at the end of the PA
 
+Current defensive implementation:
+- defensive substitution while MY TEAM is fielding
+- position change, including automatic position swap when the destination position is occupied
+- pitching change when P is replaced or a player moves into P
+- defensiveStint and pitchingStint event history
+- defensive changes are written into the active opponent scorecard timing area using the defensive color channel
+- same-timing consecutive substitutions share batchId
+- the first change in a batch creates the Undo snapshot; subsequent changes in the same timing batch do not
+- Undo once restores the complete simultaneous substitution batch, and Redo once restores the batch
+
 Still required:
-- defensive substitution
-- position change
-- pitching change
-- simultaneous changes
+- opponent-team substitutions after opponent roster editing is added
+- advanced pitcher responsibility / inherited-runner statistics
 
-Those defensive changes will be connected after opponent-side / half-inning state exists, because otherwise the event cannot be attached to the correct defensive half-inning reliably.
+## 8. Full-game half-inning state
+The canonical live state now distinguishes:
+- inning number
+- half = top / bottom
+- offenseKey = self / opponent derived from self side and half
+- independent batting indexes for self and opponent
+- independent team scores and inning scores
+- independent defensive pitching aggregates
+- self lineup and placeholder opponent lineup
 
-## 8. Data model
+Three outs transitions:
+- top -> bottom of the same inning
+- bottom -> top of the next inning
+- remaining runners receive ℓ before bases are cleared
+- count and current pitch sequence are cleared
+
+BOX and Data can switch between MY TEAM and opponent. Opponent players may remain placeholders until names are supplied later.
+
+## 9. Data model
 Canonical data is structured, not the rendered notation.
 Score notation is generated from:
 - Pitch[]
@@ -143,7 +167,7 @@ Score notation is generated from:
 - SubstitutionEvent[]
 - FinalResult
 
-## 9. Strikeout / dropped third strike
+## 10. Strikeout / dropped third strike
 Strikeout display and structured data are separated:
 - called strikeout => K
 - swinging strikeout => reversed K
@@ -161,7 +185,7 @@ Cause is stored independently:
 
 The same Play may also contain RunnerAction records for existing runners.
 
-## 10. Sacrifice / double play
+## 11. Sacrifice / double play
 Current scoring rules:
 - SH: before two outs, at least one runner advances, batter is recorded out in the current MVP path, PA increments, AB does not
 - SF: before two outs, at least one runner scores, batter is out, PA increments, AB does not
@@ -169,7 +193,7 @@ Current scoring rules:
 
 Scorer judgment remains authoritative for borderline sacrifice/error/FC cases. Future scorer override will support sacrifice credit where the batter reaches because of an error or unsuccessful play on another runner.
 
-## 11. Undo / correction
+## 12. Undo / correction
 All live operations must be reversible immediately.
 A correction recomputes:
 - count
@@ -181,7 +205,7 @@ A correction recomputes:
 - batting stats
 - pitching stats
 
-## 12. v0.3 implementation scope
+## 13. v0.3 implementation scope
 Implemented in prototype branch:
 - pitch marks retained per PA
 - ground/fly/liner symbols
@@ -233,10 +257,19 @@ Added after reference-scorebook review:
 - scorebook batting-order rows preserve starter + substitute history
 - pinch-runner identity is separated from the original hitter's scorecard ownership
 - two-strike pinch-hit strikeout attribution follows the scoring rule by retaining the strikeout owner
+- explicit top / bottom half-inning state
+- self/opponent offense is derived from side + half instead of assuming MY TEAM is always batting
+- opponent placeholder lineup and independent opponent batting order
+- separate self/opponent score and inning-score arrays
+- BOX and Data can switch between self and opponent
+- defensive substitution, position change, and pitching-change events while MY TEAM fields
+- defensive and pitching stint histories
+- simultaneous substitution timing groups use a shared batchId and one-step Undo/Redo
 
 Next:
-- opponent-side full scoring and explicit top/bottom half-inning state
-- defensive substitution / position change / pitching change / simultaneous changes
+- editable opponent roster / names after game start
+- opponent-team substitution events
+- per-pitcher aggregation and inherited-runner responsibility
 - expanded error and FC responsibility rules
 - printable/PDF score sheet
 - IndexedDB persistence
