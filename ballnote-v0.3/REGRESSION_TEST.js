@@ -266,6 +266,51 @@ globalThis.__testResult={bd:bd,pd:pd};
   equal(r.pd.WHIP, '2.00', 'WHIP');
 });
 
+
+test('regulation innings, extra innings, and walkoff finish', () => {
+  const r = runScenario(`
+var out={};
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';
+st.g.inning=7;st.g.half='top';st.g.scores={self:1,opp:2};st.g.inningScores={self:[0,0,0,0,0,0,1],opp:[0,0,0,0,0,0,2]};st.g.outs=3;inningCheck();
+out.skipBottom={over:st.g.over,reason:st.g.gameEndReason,inning:st.g.inning,half:st.g.half};
+
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away',regulationInnings:7});st.undo=[];st.redo=[];st.view='live';
+st.g.inning=7;st.g.half='bottom';st.g.scores={self:2,opp:2};st.g.inningScores={self:[0,0,0,0,0,0,2],opp:[0,0,0,0,0,0,2]};st.g.outs=3;inningCheck();
+out.extra={over:st.g.over,inning:st.g.inning,half:st.g.half,outs:st.g.outs};
+
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'home',regulationInnings:7});st.undo=[];st.redo=[];st.view='live';
+st.g.inning=7;st.g.half='bottom';st.g.scores={self:2,opp:2};st.g.inningScores={self:[0,0,0,0,0,0,2],opp:[0,0,0,0,0,0,2]};st.g.bases={first:'p2',second:'p3',third:'p4'};completeHBP();
+out.walkoff={over:st.g.over,reason:st.g.gameEndReason,self:scoreOf('self'),opp:scoreOf('opp')};
+globalThis.__testResult=out;
+`);
+  equal(r.skipBottom.over, true, 'home lead after top regulation should end game');
+  equal(r.skipBottom.reason, 'home_lead_after_top', 'skip-bottom reason');
+  equal(r.extra.over, false, 'tie after regulation should continue');
+  equal(r.extra.inning, 8, 'tie should advance to extra inning');
+  equal(r.extra.half, 'top', 'extra inning should start at top');
+  equal(r.walkoff.over, true, 'walkoff should end game');
+  equal(r.walkoff.reason, 'walkoff', 'walkoff reason');
+  equal(r.walkoff.self, 3, 'walkoff score');
+});
+
+test('LIVE keeps one-tap Undo/Redo and suppresses non-contact batted-ball shape', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+var html=live();
+var hbpCard=addScorecard(bat(),'DB','HBP');
+globalThis.__testResult={
+  undoCount:(html.match(/data-act="undo"/g)||[]).length,
+  redoCount:(html.match(/data-act="redo"/g)||[]).length,
+  sticky:html.indexOf('live-undo-bar')>=0,
+  hbpShape:scoreShape(hbpCard)
+};
+`);
+  equal(r.undoCount, 1, 'LIVE should expose one Undo button');
+  equal(r.redoCount, 1, 'LIVE should expose one Redo button');
+  equal(r.sticky, true, 'LIVE should render sticky Undo bar');
+  equal(r.hbpShape, '', 'HBP must not render stale batted-ball symbol');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
