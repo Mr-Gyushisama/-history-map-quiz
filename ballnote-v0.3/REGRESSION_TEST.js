@@ -58,14 +58,14 @@ test('top-bottom transition and Undo/Redo', () => {
   const r = runScenario(`
 st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
 for(var i=0;i<9;i++)pitch('strike');
-var top={inning:st.g.inning,half:st.g.half,offense:offenseKey(),selfBi:st.g.bi,oppBi:st.g.oppBi,outs:st.g.outs};
+var topState={inning:st.g.inning,half:st.g.half,offense:offenseKey(),selfBi:st.g.bi,oppBi:st.g.oppBi,outs:st.g.outs};
 for(var j=0;j<9;j++)pitch('strike');
-var bottom={inning:st.g.inning,half:st.g.half,offense:offenseKey(),selfBi:st.g.bi,oppBi:st.g.oppBi,outs:st.g.outs};
+var bottomState={inning:st.g.inning,half:st.g.half,offense:offenseKey(),selfBi:st.g.bi,oppBi:st.g.oppBi,outs:st.g.outs};
 undo();
 var undone={inning:st.g.inning,half:st.g.half,outs:st.g.outs,s:st.g.count.s,oppBi:st.g.oppBi};
 redo();
 var redone={inning:st.g.inning,half:st.g.half,outs:st.g.outs};
-globalThis.__testResult={top:top,bottom:bottom,undone:undone,redone:redone};
+globalThis.__testResult={top:topState,bottom:bottomState,undone:undone,redone:redone};
 `);
   equal(r.top.half, 'bottom', 'top half did not advance to bottom');
   equal(r.top.offense, 'opp', 'opponent should bat in bottom for self away');
