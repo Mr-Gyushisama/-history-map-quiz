@@ -305,6 +305,18 @@ Added after reference-scorebook review:
 - opponent bench placeholders support later PH / PR / defense changes
 - substitution routing now works for either offense or defense team
 
+Additional official-scoring coverage now implemented:
+- HBP / dead ball (DB) as a one-tap plate-appearance result
+- bases-loaded HBP credits the forced run and RBI while excluding the PA from AB
+- intentional walk (IBB) as a no-pitch plate-appearance result, tracked inside BB and separately as IBB
+- balk (BK) as a runner-only event and pitcher statistic
+- passed ball (PB) as a runner-only event and catcher fielding statistic
+- batting-interference reach (妨出) as a PA without AB, with responsible fielder error
+- forced run on batting interference can credit RBI
+- error / batting interference / obstruction / passed-ball paths default the affected runner to non-earned-run eligibility
+- scorer can still override responsible pitcher and earned/unearned result through the correction UI
+- HBP / IBB batter scorecards preserve the home-to-first advancement path
+
 Raw pitch / persistence / output now implemented:
 - Game receives a device-generated gameId
 - Pitch[] is canonical raw pitch data with global sequence, inning/half, offense/defense team, batter, pitcher, pitch result, count before/after, outs and bases context
@@ -341,6 +353,10 @@ Verification:
 - mid-count pitching-change tests PASS: 2-0 -> walk belongs predecessor; 2-0 -> hit belongs reliever
 - fielder-choice liability-transfer test PASS: inherited runner forced out, replacement runner later scores, predecessor retains R/ER
 - WP, pitcher R/ER Undo, and Redo focused tests PASS
+- bases-loaded HBP test PASS: forced run + RBI + DB scorecard path
+- passed-ball fielding test PASS: catcher PB increments once per PB event
+- passed-ball earned-run test PASS: later score defaults to ○ / pitcher R without ER
+- batting-interference test PASS: PA + 妨出, no AB, fielder E, forced RBI, default ○ / non-earned
 
 Additional correction / complex-play implementation:
 - History has scorer correction UI for responsible pitcher and earned/unearned run
@@ -371,11 +387,10 @@ Verification added:
   - extended 6-4-3 route
 
 Next:
-- actual iPhone/PWA airplane-mode full-game acceptance test
-- special fielding sequences: interference, appeals, take-base awards, post-error secondary plays
-- explicit scorer adjustment for arbitrary batting/pitching/fielding statistics
-- cloud upload / idempotent reconciliation
-- native/generated PDF export only if browser print-to-PDF is insufficient
+- generic runner-special play flow for rundowns / pickoffs / appeal outs / runner interference / obstruction
+- post-error secondary-play modeling with multiple FieldingAction records in one Play
+- cloud upload with idempotent reconciliation and server-confirmed uploaded state
+- broader automated regression suite around full 7/9-inning game completion and restart recovery
 
 ## References
 - Visco mobile scorebook guide:
