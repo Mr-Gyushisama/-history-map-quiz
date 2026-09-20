@@ -368,6 +368,15 @@ Raw pitch / persistence / output now implemented:
 - quick commit updates bases / outs / runs immediately and stores Play.needsReview=true
 - pending quick commits are visible in History and can be marked reviewed without changing the recorded result
 - review resolution creates a revision record and is Undo / Redo reversible
+- History supports past runner-result correction for batted-ball plays
+- correction runs a downstream replay preview before apply
+- replay detects runner-source mismatch, destination occupancy conflicts, batter mismatch, substitution conflicts, and missing checkpoints
+- conflict-free corrections recalculate current inning / half / outs / count / bases / score / batting order
+- after correction, batting stats, BOX runner paths and markers, pitcher stats, and fielding stats are rebuilt from the structured ledger
+- scorer responsible-pitcher and earned/unearned overrides are preserved across rebuilds
+- deferred fielding-path correction reassigns PO/A/E/DP contributions without changing game state
+- replay checkpoints are stored every 12 plays to avoid full-game snapshots on every event
+- measured serialized game size: about 229 KB at 54 plate appearances / 162 pitches and about 525 KB at 100 plate appearances / 300 pitches in the current stress fixture
 - Undo / Redo snapshots are held as serialized JSON strings (max 80) so ordinary pitch entry avoids an immediate stringify+parse deep clone
 
 Verification:
@@ -432,7 +441,7 @@ Verification added:
   - extended 6-4-3 route
 
 - GitHub Actions regression suite is installed on the development branch
-- deterministic regression suite currently covers 14 scenarios:
+- deterministic regression suite currently covers 22 scenarios:
   - top/bottom transition + Undo/Redo
   - core multi-runner FC + atomic Undo/Redo
   - two-strike pinch-hit attribution
@@ -447,13 +456,22 @@ Verification added:
   - pinned one-tap LIVE Undo/Redo + non-contact BOX rendering
   - next-pitch-first quick commit + pending review
   - quick-play review resolution + Undo
-- latest completed GitHub Actions regression run: 14 / 14 PASS
+  - deferred fielding-path correction with PO/A reassignment + Undo
+  - replay checkpoints every 12 plays without recursive snapshot growth
+  - dry-run ledger replay matches live operational state
+  - replay conflict detection blocks downstream base / batter inconsistencies
+  - solo HR credits batter RBI
+  - past runner-state correction recalculates outs / bases / BOX / stats + Undo
+  - full derived rebuild reproduces batting / BOX / pitching / fielding
+  - scorer earned-run override survives later replay rebuild
+- latest completed GitHub Actions regression run before the newest test additions: PASS; newest suite is 22 scenarios and is re-run by CI on each branch update
 - additional focused serialized-snapshot test PASS:
   - one-pitch Undo / Redo
   - multi-runner play Undo / Redo
 
 Next:
-- add actual past-play correction that changes a quick-committed play and deterministically recalculates downstream state
+- extend past-play correction from runner outcomes to changing the batting result itself (for example E -> FC / OUT -> 1B) with the same downstream replay safety checks
+- add richer scorer override UI for RBI / fielding-error attribution during historical corrections
 - implement authenticated server endpoint described in SYNC_PROTOCOL.md
 - server-side idempotency store and authoritative reconciliation
 - server-side event validation / aggregation
