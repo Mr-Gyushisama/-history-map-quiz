@@ -296,11 +296,35 @@ Added after reference-scorebook review:
 - opponent bench placeholders support later PH / PR / defense changes
 - substitution routing now works for either offense or defense team
 
+Raw pitch / persistence / output now implemented:
+- Game receives a device-generated gameId
+- Pitch[] is canonical raw pitch data with global sequence, inning/half, offense/defense team, batter, pitcher, pitch result, count before/after, outs and bases context
+- scorecards store pitchIds and render pitch marks from Pitch[]; legacy display marks remain only as compatibility fallback
+- strikeout / walk / in-play / dropped-third flows all connect to structured Play records
+- IndexedDB stores the current snapshot and a gameId-keyed local game backup without blocking LIVE input
+- localStorage remains a compatibility fallback and fast boot mirror
+- startup restores the newer IndexedDB snapshot when available
+- printable A4 landscape scorebook output contains MY TEAM and opponent on separate pages and can be saved as PDF through the browser print flow
+
+Verification:
+- syntax check PASS
+- minimal startup runtime check PASS with a DOM stub
+- 3 consecutive strikeouts -> top/bottom transition -> Undo -> Redo smoke test PASS
+- core multi-runner scenario PASS from actual pitch/play inputs:
+  - 1 out, runners first/third
+  - shortstop ground ball / 6-4 force at second
+  - third-base runner scores
+  - batter-runner safe at first
+  - BOX runner markers update
+  - one-step Undo restores outs/bases/score
+  - Redo restores the completed play
+- focused logic tests PASS for simultaneous-substitution atomic Undo/Redo, dual-team substitution routing, per-pitcher aggregation, and fielding PO/A/DP
+
 Next:
-- raw Pitch[] as canonical pitch data instead of display marks alone
-- IndexedDB primary persistence with localStorage fallback
-- inherited-runner / earned-run responsibility
+- inherited-runner / earned-run responsibility with scorer override
 - expanded error and FC responsibility rules
+- special fielding sequences: rundowns, interference, appeals, post-error secondary plays
+- cloud upload / idempotent reconciliation
 - printable/PDF score sheet
 - IndexedDB persistence
 
