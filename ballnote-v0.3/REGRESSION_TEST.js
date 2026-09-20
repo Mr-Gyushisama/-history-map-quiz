@@ -571,6 +571,54 @@ globalThis.__testResult={applied:applied.ok,marker:c1.finalMarker,override:c1.sc
   equal(r.er, 1, 'pitcher ER should remain');
 });
 
+test('historical batting-result correction OUT to 1B rebuilds all derived state', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');
+var p=st.g.plays[st.g.plays.length-1],chg=prepareRecordedResultChange(p.id,'1B');
+var applied=applyPlayCorrection(p.id,chg.result,chg.runnerActions);
+var after={
+  applied:applied.ok,outs:st.g.outs,first:st.g.bases.first,h:st.g.stats.p1.H,
+  pitcherH:st.g.pitcherStats['unknown_opp_pitcher'].H,
+  pitcherOuts:st.g.pitcherStats['unknown_opp_pitcher'].OUTS,
+  a6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].A:0,
+  po3:st.g.fieldingStats['unknown_opp_pos_3']?st.g.fieldingStats['unknown_opp_pos_3'].PO:0,
+  result:st.g.scorecards[0].result,notation:st.g.scorecards[0].notation,outNo:st.g.scorecards[0].finalOutNumber
+};
+undo();
+var undone={outs:st.g.outs,first:st.g.bases.first,h:st.g.stats.p1.H,result:st.g.scorecards[0].result,outNo:st.g.scorecards[0].finalOutNumber};
+globalThis.__testResult={after:after,undone:undone};
+`);
+  equal(r.after.applied, true, 'result correction applies');
+  equal(r.after.outs, 0, 'out removed');
+  equal(r.after.first, 'p1', 'batter reaches first');
+  equal(r.after.h, 1, 'hit added');
+  equal(r.after.pitcherH, 1, 'pitcher hit added');
+  equal(r.after.pitcherOuts, 0, 'pitcher out removed');
+  equal(r.after.a6, 0, 'obsolete assist removed');
+  equal(r.after.po3, 0, 'obsolete putout removed');
+  equal(r.after.result, '1B', 'scorecard result');
+  equal(r.after.notation, '6安', 'scorecard notation');
+  equal(r.after.outNo, 0, 'BOX out marker removed');
+  equal(r.undone.outs, 1, 'Undo restores out');
+  equal(r.undone.result, 'OUT', 'Undo restores result');
+  equal(r.undone.outNo, 1, 'Undo restores BOX out marker');
+});
+
+test('history correction UI can change result and preview safely', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');
+var id=st.g.plays[st.g.plays.length-1].id;
+st.view='history';beginPlayRunnerEdit(id);changePlayEditResult('1B');previewPlayRunnerEdit();
+var html=modal();
+globalThis.__testResult={result:st.playStateDraft.result,batterTo:st.playStateDraft.runnerActions[st.playStateDraft.runnerActions.length-1].to,canApply:html.indexOf('訂正を適用')>=0};
+`);
+  equal(r.result, '1B', 'draft result');
+  equal(r.batterTo, 'first', 'result change regenerates batter action');
+  equal(r.canApply, true, 'conflict-free correction shows apply');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
