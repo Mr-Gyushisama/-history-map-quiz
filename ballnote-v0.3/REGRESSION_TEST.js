@@ -180,9 +180,9 @@ out.pb={second:st.g.bases.second,catcher:st.g.fieldingStats['unknown_opp_pos_2']
 st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.undo=[];st.redo=[];
 st.g.bases={first:'p2',second:'p3',third:'p4'};
 st.g.scorecards=[
-{id:'c2',teamKey:'self',playerId:'p2',activeRunnerId:'p2',order:2,inning:1,result:'1B',advances:[],finalMarker:'',finalOutNumber:0,responsiblePitcherId:'unknown_opp_pitcher',responsiblePitcherTeam:'opp',earnedRunEligible:true,runCharged:false,substitutions:[]},
-{id:'c3',teamKey:'self',playerId:'p3',activeRunnerId:'p3',order:3,inning:1,result:'1B',advances:[],finalMarker:'',finalOutNumber:0,responsiblePitcherId:'unknown_opp_pitcher',responsiblePitcherTeam:'opp',earnedRunEligible:true,runCharged:false,substitutions:[]},
-{id:'c4',teamKey:'self',playerId:'p4',activeRunnerId:'p4',order:4,inning:1,result:'1B',advances:[],finalMarker:'',finalOutNumber:0,responsiblePitcherId:'unknown_opp_pitcher',responsiblePitcherTeam:'opp',earnedRunEligible:true,runCharged:false,substitutions:[]}
+{id:'c2',teamKey:'self',playerId:'p2',activeRunnerId:'p2',order:2,inning:1,result:'1B',advances:[{from:'home',to:'first',reason:'batted_ball'}],finalMarker:'',finalOutNumber:0,responsiblePitcherId:'unknown_opp_pitcher',responsiblePitcherTeam:'opp',earnedRunEligible:true,runCharged:false,substitutions:[]},
+{id:'c3',teamKey:'self',playerId:'p3',activeRunnerId:'p3',order:3,inning:1,result:'1B',advances:[{from:'home',to:'second',reason:'batted_ball'}],finalMarker:'',finalOutNumber:0,responsiblePitcherId:'unknown_opp_pitcher',responsiblePitcherTeam:'opp',earnedRunEligible:true,runCharged:false,substitutions:[]},
+{id:'c4',teamKey:'self',playerId:'p4',activeRunnerId:'p4',order:4,inning:1,result:'1B',advances:[{from:'home',to:'third',reason:'batted_ball'}],finalMarker:'',finalOutNumber:0,responsiblePitcherId:'unknown_opp_pitcher',responsiblePitcherTeam:'opp',earnedRunEligible:true,runCharged:false,substitutions:[]}
 ];
 st.interferenceDraft={fielder:'2'};completeInterference();
 out.intf={score:scoreOf('self'),rbi:st.g.stats.p1.RBI,intf:st.g.stats.p1.INTF,marker:st.g.scorecards[2].finalMarker,catcher:st.g.fieldingStats['unknown_opp_pos_2'],pitcher:st.g.pitcherStats['unknown_opp_pitcher']};
