@@ -499,6 +499,34 @@ globalThis.__testResult={baseline:baseline.conflicts,preview:preview.conflicts};
   equal(r.preview[0].base, 'second', 'conflict base');
 });
 
+test('past runner correction recalculates state BOX and Undo', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'',runnerActions:[]};beginInplay('FC');commitInplay(true);
+var target=st.g.plays[st.g.plays.length-1];
+var before={outs:st.g.outs,first:st.g.bases.first,second:st.g.bases.second,p1Out:st.g.scorecards[0].finalOutNumber};
+var edited=cp(target.runnerActions);
+for(var i=0;i<edited.length;i++)if(edited[i].playerId==='p1'){edited[i].outcome='safe';edited[i].to='second';edited[i].outAt='';edited[i].outBy='';edited[i].outNumber=0}
+var applied=applyRunnerCorrection(target.id,edited);
+var after={outs:st.g.outs,first:st.g.bases.first,second:st.g.bases.second,p1Out:st.g.scorecards[0].finalOutNumber,p1Last:st.g.scorecards[0].advances[st.g.scorecards[0].advances.length-1].to,rev:st.g.revisions[st.g.revisions.length-1].type};
+undo();
+var undone={outs:st.g.outs,first:st.g.bases.first,second:st.g.bases.second,p1Out:st.g.scorecards[0].finalOutNumber};
+globalThis.__testResult={applied:applied,before:before,after:after,undone:undone};
+`);
+  equal(r.applied.ok, true, 'runner correction should apply');
+  equal(r.before.outs, 1, 'original out');
+  equal(r.after.outs, 0, 'corrected outs');
+  equal(r.after.first, 'p2', 'batter remains first');
+  equal(r.after.second, 'p1', 'corrected runner reaches second');
+  equal(r.after.p1Out, 0, 'BOX out marker removed');
+  equal(r.after.p1Last, 'second', 'BOX advance corrected');
+  equal(r.after.rev, 'play_runner_correction', 'revision type');
+  equal(r.undone.outs, 1, 'Undo restores out');
+  equal(r.undone.second, null, 'Undo clears corrected second base');
+  equal(r.undone.p1Out, 1, 'Undo restores BOX out marker');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
