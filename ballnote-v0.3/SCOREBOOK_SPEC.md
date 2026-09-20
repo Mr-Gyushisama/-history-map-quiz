@@ -376,6 +376,13 @@ Raw pitch / persistence / output now implemented:
 - scorer responsible-pitcher and earned/unearned overrides are preserved across rebuilds
 - deferred fielding-path correction reassigns PO/A/E/DP contributions without changing game state
 - replay checkpoints are stored every 12 plays to avoid full-game snapshots on every event
+- responsible fielder can be corrected historically without changing outs / bases / score
+- historical fielding correction updates BOX notation and recalculates PO / A / E / DP contributions
+- historical batting-result correction supports 1B / 2B / 3B / HR / OUT / FC / E / SH / SF / GDP for batted-ball plays
+- correction preview blocks invalid FC / SH / SF / GDP scoring situations and downstream runner / batter conflicts
+- dropped-third cause E stores the responsible fielder number structurally and rebuilds the same fielding error
+- historical scoring correction UI can change RBI yes/no and earned/non-earned for scoring RunnerAction records
+- unresolved quick-commit plays are counted and surfaced in LIVE and the History tab
 - measured serialized game size: about 229 KB at 54 plate appearances / 162 pitches and about 525 KB at 100 plate appearances / 300 pitches in the current stress fixture
 - Undo / Redo snapshots are held as serialized JSON strings (max 80) so ordinary pitch entry avoids an immediate stringify+parse deep clone
 
@@ -441,7 +448,7 @@ Verification added:
   - extended 6-4-3 route
 
 - GitHub Actions regression suite is installed on the development branch
-- deterministic regression suite currently covers 22 scenarios:
+- deterministic regression suite currently covers 32 scenarios:
   - top/bottom transition + Undo/Redo
   - core multi-runner FC + atomic Undo/Redo
   - two-strike pinch-hit attribution
@@ -464,18 +471,28 @@ Verification added:
   - past runner-state correction recalculates outs / bases / BOX / stats + Undo
   - full derived rebuild reproduces batting / BOX / pitching / fielding
   - scorer earned-run override survives later replay rebuild
-- latest completed GitHub Actions regression run before the newest test additions: PASS; newest suite is 22 scenarios and is re-run by CI on each branch update
+  - historical batting-result correction OUT -> 1B with full derived rebuild + Undo
+  - historical correction UI result switch + safe preview
+  - FC requires an existing runner in LIVE
+  - historical E -> FC with force-out / fielding-stat recalculation
+  - historical 1B -> OUT is blocked when downstream runner dependency would break
+  - SH / SF / GDP / FC prerequisite validation during historical correction
+  - dropped-third E attribution to selected fielder + rebuild + Undo
+  - historical RBI / earned-run override correction + Undo
+  - historical responsible-fielder correction (6-3 -> 5-3) + BOX / A / PO reassignment + Undo
+  - pending-review count visible in LIVE and History navigation
+- latest completed GitHub Actions regression run: 32 / 32 PASS on development branch
 - additional focused serialized-snapshot test PASS:
   - one-pitch Undo / Redo
   - multi-runner play Undo / Redo
 
 Next:
-- extend past-play correction from runner outcomes to changing the batting result itself (for example E -> FC / OUT -> 1B) with the same downstream replay safety checks
-- add richer scorer override UI for RBI / fielding-error attribution during historical corrections
+- add historical correction for non-batted terminal results only where raw Pitch[] consistency can be preserved safely (BB / HBP / K should not be rewritten without pitch-ledger reconciliation)
+- strengthen scorer override UI for unusual interference / appeal responsibility cases
+- add pre-release real-device acceptance checklist for iPhone / iPad: one-tap pitch speed, quick commit, Undo, app restart, airplane mode, 7/9-inning completion
 - implement authenticated server endpoint described in SYNC_PROTOCOL.md
 - server-side idempotency store and authoritative reconciliation
 - server-side event validation / aggregation
-- iPhone / iPad real-device tap-speed, airplane-mode restart, and long-game memory validation before public release
 
 ## References
 - Visco mobile scorebook guide:
