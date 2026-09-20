@@ -383,6 +383,10 @@ Raw pitch / persistence / output now implemented:
 - dropped-third cause E stores the responsible fielder number structurally and rebuilds the same fielding error
 - historical scoring correction UI can change RBI yes/no and earned/non-earned for scoring RunnerAction records
 - unresolved quick-commit plays are counted and surfaced in LIVE and the History tab
+- BOX screen also warns when unresolved quick-commit reviews remain
+- stolen-base runner event supports multiple selected runners for double-steal situations
+- clear third-out force / batter-runner-first-out situations at two outs reject scoring before commit
+- tag-out time plays remain scorer-controlled rather than being auto-invalidated
 - measured serialized game size: about 229 KB at 54 plate appearances / 162 pitches and about 525 KB at 100 plate appearances / 300 pitches in the current stress fixture
 - Undo / Redo snapshots are held as serialized JSON strings (max 80) so ordinary pitch entry avoids an immediate stringify+parse deep clone
 
@@ -448,7 +452,7 @@ Verification added:
   - extended 6-4-3 route
 
 - GitHub Actions regression suite is installed on the development branch
-- deterministic regression suite currently covers 32 scenarios:
+- deterministic regression suite currently covers 35 scenarios:
   - top/bottom transition + Undo/Redo
   - core multi-runner FC + atomic Undo/Redo
   - two-strike pinch-hit attribution
@@ -481,15 +485,19 @@ Verification added:
   - historical RBI / earned-run override correction + Undo
   - historical responsible-fielder correction (6-3 -> 5-3) + BOX / A / PO reassignment + Undo
   - pending-review count visible in LIVE and History navigation
-- latest completed GitHub Actions regression run: 32 / 32 PASS on development branch
+  - BOX also surfaces unresolved quick-commit review count with direct History shortcut
+  - double steal stores multiple RunnerAction records in one runner event and Undo restores atomically
+  - two-out clear force third-out rule blocks invalid runs while tag time-plays remain scorer judgment
+- latest completed GitHub Actions regression run: 35 / 35 PASS on development branch
 - additional focused serialized-snapshot test PASS:
   - one-pitch Undo / Redo
   - multi-runner play Undo / Redo
 
 Next:
-- add historical correction for non-batted terminal results only where raw Pitch[] consistency can be preserved safely (BB / HBP / K should not be rewritten without pitch-ledger reconciliation)
+- run DEVICE_ACCEPTANCE.md on real iPhone and iPad hardware before declaring the zero-network MVP complete
+- record any device-specific latency / PWA / Safari restart defects and fix only verified failures
+- add historical correction for non-batted terminal results only where raw Pitch[] consistency can be preserved safely
 - strengthen scorer override UI for unusual interference / appeal responsibility cases
-- add pre-release real-device acceptance checklist for iPhone / iPad: one-tap pitch speed, quick commit, Undo, app restart, airplane mode, 7/9-inning completion
 - implement authenticated server endpoint described in SYNC_PROTOCOL.md
 - server-side idempotency store and authoritative reconciliation
 - server-side event validation / aggregation
