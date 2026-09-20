@@ -341,6 +341,28 @@ globalThis.__testResult={
   equal(r.hbpShape, '', 'HBP must not render stale batted-ball symbol');
 });
 
+test('quick commit preserves game state and queues detail review', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:[],result:'',runnerActions:[]};beginInplay('FC');
+commitInplay(true);
+var play=st.g.plays[st.g.plays.length-1];
+var committed={needsReview:play.needsReview,reason:play.reviewReason,modal:st.modal,b:st.g.count.b,s:st.g.count.s,history:history().indexOf('要確認')>=0,bi:st.g.bi};
+undo();
+globalThis.__testResult={committed:committed,undo:{plays:st.g.plays.length,bi:st.g.bi,first:st.g.bases.first,second:st.g.bases.second,third:st.g.bases.third}};
+`);
+  equal(r.committed.needsReview, true, 'quick commit needsReview');
+  equal(r.committed.reason, 'quick_commit', 'quick commit review reason');
+  equal(r.committed.modal, '', 'quick commit should close modal');
+  equal(r.committed.b, 0, 'quick commit ball count reset');
+  equal(r.committed.s, 0, 'quick commit strike count reset');
+  equal(r.committed.history, true, 'quick commit should appear in history');
+  equal(r.undo.plays, 1, 'Undo should remove quick-committed play');
+  equal(r.undo.bi, 1, 'Undo should restore batting index');
+  equal(r.undo.first, 'p1', 'Undo should restore existing runner');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
