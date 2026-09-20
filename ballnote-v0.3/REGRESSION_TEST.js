@@ -619,6 +619,80 @@ globalThis.__testResult={result:st.playStateDraft.result,batterTo:st.playStateDr
   equal(r.canApply, true, 'conflict-free correction shows apply');
 });
 
+test('FC requires an existing runner in LIVE', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+beginInplay('FC');
+globalThis.__testResult={plays:st.g.plays.length,modal:st.modal,bases:cp(st.g.bases),result:st.play.result};
+`);
+  equal(r.plays, 0, 'no-runner FC must not create a play');
+  equal(r.modal, '', 'no-runner FC must not open runner modal');
+  equal(r.bases.first, null, 'no-runner FC must not alter bases');
+});
+
+test('historical E to FC with runner recalculates error and force out', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'',runnerActions:[]};beginInplay('E');commitInplay(true);
+var p=st.g.plays[st.g.plays.length-1],chg=prepareRecordedResultChange(p.id,'FC');
+var preview=playCorrectionPreview(p.id,chg.result,chg.runnerActions);
+var applied=applyPlayCorrection(p.id,chg.result,chg.runnerActions);
+globalThis.__testResult={
+  preview:preview.ok,applied:applied.ok,result:st.g.scorecards[1].result,
+  outs:st.g.outs,first:st.g.bases.first,second:st.g.bases.second,
+  error6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].E:0,
+  assist6:st.g.fieldingStats['unknown_opp_pos_6']?st.g.fieldingStats['unknown_opp_pos_6'].A:0,
+  po4:st.g.fieldingStats['unknown_opp_pos_4']?st.g.fieldingStats['unknown_opp_pos_4'].PO:0
+};
+`);
+  equal(r.preview, true, 'E to FC preview');
+  equal(r.applied, true, 'E to FC apply');
+  equal(r.result, 'FC', 'scorecard result becomes FC');
+  equal(r.outs, 1, 'force out added');
+  equal(r.first, 'p2', 'batter reaches first');
+  equal(r.second, null, 'forced runner removed');
+  equal(r.error6, 0, 'old error removed');
+  equal(r.assist6, 1, 'shortstop assist added');
+  equal(r.po4, 1, 'second baseman putout added');
+});
+
+test('historical 1B to OUT is blocked when later play depends on runner', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+var firstPlay=st.g.plays[st.g.plays.length-1];
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');commitInplay(false);
+var chg=prepareRecordedResultChange(firstPlay.id,'OUT');
+var preview=playCorrectionPreview(firstPlay.id,chg.result,chg.runnerActions);
+globalThis.__testResult={ok:preview.ok,conflicts:preview.conflicts};
+`);
+  equal(r.ok, false, 'dependent later play must block correction');
+  equal(r.conflicts[0].type, 'runner_source_mismatch', 'runner dependency conflict');
+});
+
+test('historical SH SF GDP enforce scoring prerequisites', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');
+var p=st.g.plays[st.g.plays.length-1],out={};
+['SH','SF','GDP','FC'].forEach(function(result){
+  var chg=prepareRecordedResultChange(p.id,result);
+  var preview=playCorrectionPreview(p.id,chg.result,chg.runnerActions);
+  out[result]={ok:preview.ok,type:preview.conflicts[0]&&preview.conflicts[0].type};
+});
+globalThis.__testResult=out;
+`);
+  equal(r.SH.ok, false, 'SH without runner blocked');
+  equal(r.SH.type, 'invalid_sac_bunt', 'SH conflict type');
+  equal(r.SF.ok, false, 'SF without runner on third blocked');
+  equal(r.SF.type, 'invalid_sac_fly', 'SF conflict type');
+  equal(r.GDP.ok, false, 'GDP without runner first blocked');
+  equal(r.GDP.type, 'invalid_double_play', 'GDP conflict type');
+  equal(r.FC.ok, false, 'FC without runner blocked');
+  equal(r.FC.type, 'result_requires_runner', 'FC conflict type');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
