@@ -79,6 +79,8 @@ Display:
 - ― above 6
 
 ## 6. Runner advancement
+A scorecard is not complete when the plate appearance ends. It remains the runner's scorecard until that runner is retired, scores, or is left on base.
+
 A scorecard must preserve:
 - origin base
 - destination base
@@ -86,7 +88,19 @@ A scorecard must preserve:
 - responsible batter/order when advancement was caused by batting
 - RBI attribution
 - out/score/left-on-base final state
-The rendered scorebook must draw advancement on the central diamond.
+- later runner-only events that occur during a following batter's plate appearance
+
+Runner-only events are attached to the original runner scorecard rather than creating a fake new plate appearance.
+
+Current runner-only reasons:
+- stolen_base => SB
+- caught_stealing => CS
+- wild_pitch => WP
+- passed_ball => PB
+- fielder_choice => FC
+- error => E
+
+The rendered scorebook must draw advancement on the central diamond and place the reason on the relevant advancement segment where practical.
 
 ## 7. Substitutions
 Store substitutions as events, not as overwritten lineup values.
@@ -149,10 +163,16 @@ Verified scenario:
 - expected result: 2 outs, +1 run, batter on first, first-base runner marked Ⅱ, third-base runner marked ●
 - Undo restores the exact pre-play state
 
+Added after reference-scorebook review:
+- scorecard lifecycle continues after the plate appearance while the player remains a runner
+- runner-only event log stored separately from the active batter's plate appearance
+- SB / CS / WP / PB quick entry from LIVE
+- SB / CS / WP / PB written back to the original runner scorecard
+- third-out processing marks all remaining runners with ℓ
+- walk force advances now use structured RunnerAction records rather than direct base mutation
+- runner-event Undo/Redo uses the same full-game snapshot path
+
 Next:
-- left-on-base marker ℓ at inning end
-- stolen base / caught stealing
-- wild pitch / passed ball
 - sacrifice bunt / sacrifice fly official rendering
 - expanded error and FC responsibility rules
 - double plays and dropped-third-strike cases
