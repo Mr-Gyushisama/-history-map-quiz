@@ -339,6 +339,12 @@ Raw pitch / persistence / output now implemented:
 - navigation uses network-first with cached index fallback; LIVE scoring itself has no network dependency
 - the header changes to "オフライン準備済" after serviceWorker.ready
 - printable A4 landscape scorebook output contains MY TEAM and opponent on separate pages and can be saved as PDF through the browser print flow
+- IndexedDB `syncQueue` stores game revisions waiting for server reconciliation
+- sync envelope key = gameId + local revision + event sequence
+- game-end queues locally without network wait
+- client marks uploaded only after matching server reconciliation
+- stale revision / mismatched gameId / mismatched idempotency key cannot mark uploaded
+- production API transport is intentionally not connected yet; see `SYNC_PROTOCOL.md`
 
 Verification:
 - syntax check PASS
@@ -401,10 +407,24 @@ Verification added:
   - inherited-runner pitcher responsibility + scorer correction Undo
   - extended 6-4-3 route
 
+- GitHub Actions regression suite is installed on the development branch
+- deterministic regression suite currently covers 8 scenarios:
+  - top/bottom transition + Undo/Redo
+  - core multi-runner FC
+  - two-strike pinch-hit attribution
+  - inherited-runner pitcher responsibility
+  - rundown + post-error secondary fielding
+  - HBP / PB / batting interference
+  - full 7-inning and 9-inning progression
+  - local restart + sync reconciliation guard
+- latest completed regression run: 8 / 8 PASS
+
 Next:
-- cloud upload with idempotent reconciliation and server-confirmed uploaded state
-- broader automated regression suite around complete 7/9-inning game completion and restart recovery
-- additional scorer-override UI for unusual appeal/interference responsibility cases
+- implement authenticated server endpoint described in SYNC_PROTOCOL.md
+- server-side idempotency store and authoritative reconciliation
+- server-side event validation / aggregation
+- expand scorer correction UI for exceptional appeal / interference responsibility cases
+- iPhone / iPad real-device tap-speed and restart validation before public release
 
 ## References
 - Visco mobile scorebook guide:
