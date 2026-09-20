@@ -527,6 +527,50 @@ globalThis.__testResult={applied:applied,before:before,after:after,undone:undone
   equal(r.undone.p1Out, 1, 'Undo restores BOX out marker');
 });
 
+test('ledger rebuild preserves current batting BOX pitching and fielding', () => {
+  const r = runScenario(`
+function snapSummary(){
+  var cards=st.g.scorecards.map(function(c){return{playerId:c.playerId,result:c.result,adv:(c.advances||[]).map(function(a){return[a.from,a.to,a.reason,a.label]}),marker:c.finalMarker,out:c.finalOutNumber}});
+  return JSON.stringify({stats:st.g.stats,pitcherStats:st.g.pitcherStats,fieldingStats:st.g.fieldingStats,pitching:st.g.pitching,cards:cards});
+}
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'F',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('HR');
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+prepareRunnerEvent('stolen_base');commitRunnerEvent();
+pitch('ball');pitch('ball');pitch('ball');pitch('ball');
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');commitInplay(false);
+for(var i=0;i<6;i++)pitch('strike');
+var before=snapSummary();
+rebuildAllDerivedFromLedger();
+var after=snapSummary();
+globalThis.__testResult={equal:before===after};
+`);
+  equal(r.equal, true, 'full derived rebuild should match live state');
+});
+
+test('scorer earned-run override survives later replay rebuild', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';ensureReplayCheckpoint(false);
+st.play={shape:'G',fielder:'6',target:'3',throwPath:[],result:'',runnerActions:[]};beginInplay('E');
+prepareRunnerEvent('wild_pitch');commitRunnerEvent();
+prepareRunnerEvent('wild_pitch');commitRunnerEvent();
+prepareRunnerEvent('wild_pitch');commitRunnerEvent();
+var c1=st.g.scorecards[0];
+beginRunReview(c1.id);st.reviewDraft.pitcherId='unknown_opp_pitcher';st.reviewDraft.earned=true;commitRunReview();
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:['6','4'],result:'',runnerActions:[]};beginInplay('FC');commitInplay(true);
+var target=st.g.plays[st.g.plays.length-1],edited=cp(target.runnerActions);
+for(var i=0;i<edited.length;i++)if(!edited[i].isBatter){edited[i].outcome='safe';edited[i].to='second';edited[i].outAt='';edited[i].outBy='';edited[i].outNumber=0}
+var applied=applyRunnerCorrection(target.id,edited);
+c1=st.g.scorecards[0];
+globalThis.__testResult={applied:applied.ok,marker:c1.finalMarker,override:c1.scorerEarnedOverride,er:st.g.pitcherStats['unknown_opp_pitcher'].ER};
+`);
+  equal(r.applied, true, 'later correction should apply');
+  equal(r.marker, '●', 'scorer earned override should remain');
+  equal(r.override, true, 'override flag should remain');
+  equal(r.er, 1, 'pitcher ER should remain');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
