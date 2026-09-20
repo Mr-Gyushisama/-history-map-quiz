@@ -363,6 +363,24 @@ globalThis.__testResult={committed:committed,undo:{plays:st.g.plays.length,bi:st
   equal(r.undo.first, 'p1', 'Undo should restore existing runner');
 });
 
+test('quick-play review can be resolved and undone', () => {
+  const r = runScenario(`
+st.g=game({date:'2026-09-20',opponent:'TEST',side:'away'});st.view='live';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'G',fielder:'6',target:'4',throwPath:[],result:'',runnerActions:[]};beginInplay('FC');commitInplay(true);
+var id=st.g.plays[st.g.plays.length-1].id;
+resolvePlayReview(id);
+var resolved={flag:playById(id).reviewResolved,pending:(history().match(/data-resolve-play/g)||[]).length,revisions:st.g.revisions.length};
+undo();
+globalThis.__testResult={resolved:resolved,undo:{flag:playById(id).reviewResolved,revisions:st.g.revisions.length}};
+`);
+  equal(r.resolved.flag, true, 'review should resolve');
+  equal(r.resolved.pending, 0, 'resolved play should leave pending list');
+  equal(r.resolved.revisions, 1, 'review resolution should create revision');
+  equal(r.undo.flag, false, 'Undo should reopen review');
+  equal(r.undo.revisions, 0, 'Undo should restore revision list');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
