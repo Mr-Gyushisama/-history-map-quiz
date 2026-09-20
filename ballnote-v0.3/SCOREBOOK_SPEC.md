@@ -131,15 +131,35 @@ Implemented in prototype branch:
 - hit path on diamond
 - inning x batting-order scorebook matrix
 - score line summary
+- Runner Resolution UI for plays with existing runners
+- structured Play + RunnerAction[] history
+- batter-runner and existing runners resolved independently
+- per-runner safe / out / destination / out base / receiving fielder
+- scored runner earned/unearned marker selection (● / ○)
+- RBI scorer override
+- prior runner scorecard updated with advancement, out number, or run marker
+- one-step Undo/Redo restores the whole game snapshot including bases, score, outs, stats, Play history, and BOX state
+
+Verified scenario:
+- start: 1 out, runners on first and third
+- play: shortstop ground ball
+- runner from first: out at second on 6-4
+- runner from third: scores
+- batter-runner: safe at first
+- expected result: 2 outs, +1 run, batter on first, first-base runner marked Ⅱ, third-base runner marked ●
+- Undo restores the exact pre-play state
 
 Next:
-- runner-by-runner advancement reasons
-- ● / ○ / ℓ
+- left-on-base marker ℓ at inning end
+- stolen base / caught stealing
+- wild pitch / passed ball
 - sacrifice bunt / sacrifice fly official rendering
-- errors and FC on runner paths
+- expanded error and FC responsibility rules
+- double plays and dropped-third-strike cases
 - substitutions and position changes
 - opponent-side full scoring
 - printable/PDF score sheet
+- IndexedDB persistence
 
 ## References
 - Visco mobile scorebook guide:
