@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - ballnote-scorebook-v030
+      - ballnote-scorebook-v031
     paths:
       - 'ballnote-v0.3/index.html'
       - 'ballnote-v0.3/REGRESSION_TEST.js'
