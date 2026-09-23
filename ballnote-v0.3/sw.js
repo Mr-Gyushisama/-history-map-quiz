@@ -1,6 +1,6 @@
 'use strict';
 
-var CACHE_VERSION='ballnote-v030-shell-20260920-1';
+var CACHE_VERSION='ballnote-v031-shell-20260923-1';
 var SHELL=['./index.html','./manifest.webmanifest'];
 
 self.addEventListener('install',function(event){
@@ -17,7 +17,7 @@ self.addEventListener('activate',function(event){
   event.waitUntil(
     caches.keys().then(function(keys){
       return Promise.all(keys.map(function(key){
-        if(key.indexOf('ballnote-v030-shell-')===0&&key!==CACHE_VERSION){
+        if((key.indexOf('ballnote-v030-shell-')===0||key.indexOf('ballnote-v031-shell-')===0)&&key!==CACHE_VERSION){
           return caches.delete(key);
         }
       }));
