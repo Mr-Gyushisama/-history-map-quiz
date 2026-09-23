@@ -876,13 +876,13 @@ globalThis.__testResult=out;
 
 
 test('v0.3.1 LIVE removes direct base mutation and uses field-ready labels', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';
 var liveHtml=live(),diamondHtml=diamond(),navHtml=bottom();
 st.modal='end-confirm';
 var endHtml=modal();
 globalThis.__testResult={live:liveHtml,diamond:diamondHtml,nav:navHtml,end:endHtml};
-\`);
+`);
   equal(r.diamond.indexOf('data-base')>=0, false, 'LIVE diamond must be display-only');
   equal(r.live.indexOf('申告敬遠')>=0, true, 'intentional walk label should be declaration wording');
   equal(r.live.indexOf('ボーク')>=0, true, 'balk should be readable in Japanese');
@@ -893,7 +893,7 @@ globalThis.__testResult={live:liveHtml,diamond:diamondHtml,nav:navHtml,end:endHt
 });
 
 test('v0.3.1 BOX separates pitch column and hit/advance path semantics', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
 st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};
 var card=addScorecard(bat(),'8安','1B');
@@ -904,7 +904,7 @@ var cell=scoreCell(card);
 card.finalOutNumber=3;
 var third=scoreCell(card);
 globalThis.__testResult={cell:cell,third:third};
-\`);
+`);
   equal(r.cell.indexOf('sc-countcol')>=0, true, 'pitch count column exists');
   equal(r.cell.indexOf('<i>1</i>●')>=0, true, 'pitch sequence number one shown');
   equal(r.cell.indexOf('<i>2</i>◎')>=0, true, 'pitch sequence number two shown');
@@ -914,24 +914,24 @@ globalThis.__testResult={cell:cell,third:third};
 });
 
 test('v0.3.1 BOX expands same-inning repeat plate appearances horizontally', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
 st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};
 addScorecard(bat(),'8安','1B');
 addScorecard(bat(),'8安','1B');
 var html=scorebookTable('self',7);
 globalThis.__testResult={html:html,reps:inningRepeatCounts('self',7)};
-\`);
+`);
   equal(r.reps['1'], 2, 'inning one should allocate two subcolumns');
   equal(r.html.indexOf('<th colspan="2">1</th>')>=0, true, 'inning header spans repeat PA columns');
 });
 
 test('v0.3.1 BOX defaults to configured regulation innings', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
 var html=box();
 globalThis.__testResult={html:html};
-\`);
+`);
   equal(r.html.indexOf('<th>8</th>')>=0, false, '7-inning game should not pre-render inning 8');
   equal(r.html.indexOf('<th>9</th>')>=0, false, '7-inning game should not pre-render inning 9');
 });
