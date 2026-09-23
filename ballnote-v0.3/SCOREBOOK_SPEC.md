@@ -515,3 +515,22 @@ Next:
   https://www.mster.co.jp/products/visco_mobile/guide/play/playing-confirm/
 - Visco mobile stats detail:
   https://www.mster.co.jp/products/visco_mobile/guide/stats/stats-detail/
+
+
+## 14. v0.3.1 P0 display and live-input hardening
+
+The v0.3.1 scorebook rendering rules are:
+
+- LIVE base diamonds are display-only. A base state cannot be changed by tapping the diamond.
+- Manual game end requires an explicit confirmation step.
+- iPhone safe areas are respected at the top header, bottom navigation, and pinned Undo/Redo bar.
+- The BOX scorecard reserves a dedicated pitch-count strip on the left side of every plate-appearance cell.
+- Pitch marks in that strip retain pitch sequence numbers so long plate appearances do not silently lose earlier pitches.
+- Hit travel from home to the hit destination is rendered in red.
+- Later runner advancement, including advancement caused by another batter or runner event, is rendered in black.
+- The third out additionally receives the two-slash change marker in the lower-right of the plate-appearance cell.
+- When the same batting-order slot appears twice in one inning, the inning expands into horizontal subcolumns instead of vertically stacking multiple plate appearances inside one table cell.
+- The on-screen BOX initially renders the configured regulation innings (6 / 7 / 9) and only extends when the game actually reaches extra innings.
+- The batting-order column and inning header remain visible while scrolling the on-screen scorebook.
+- User-facing labels use 「申告敬遠」 and 「ボーク」. Internal canonical codes may remain IBB and BK.
+- Opponent-roster editing is not a primary LIVE control.
