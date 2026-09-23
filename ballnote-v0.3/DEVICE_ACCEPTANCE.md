@@ -225,3 +225,33 @@ Do not mark the zero-network MVP requirement complete until:
 - no unresolved critical scoring defect remains
 
 Record test device, OS version, browser/PWA mode, date, result, and any defect ID.
+
+
+## M. v0.3.1 mobile layout and destructive-action guard
+
+Test on at least one notched / Dynamic Island iPhone in Safari and installed PWA mode.
+
+PASS:
+- Top header content does not overlap the iOS status bar.
+- Bottom navigation and pinned Undo / Redo do not overlap the home indicator.
+- Tapping first / second / third base in the LIVE diamond cannot directly mutate runner state.
+- Manual game end opens a confirmation step before ending the game.
+- LIVE uses 「申告敬遠」「ボーク」「空振り」 labels and opponent-name editing is not a primary live control.
+
+## N. v0.3.1 BOX visual acceptance
+
+Create examples containing:
+- a hit followed by later advancement,
+- WP advancement,
+- a third out,
+- a plate appearance with at least 10 recorded pitches,
+- two plate appearances by the same batting-order slot in one inning.
+
+PASS:
+- hit path is red and later advancement is black,
+- WP / responsible-batter labels do not collide with the primary fielding notation,
+- the dedicated pitch strip keeps the complete visible pitch sequence,
+- the third out has the two-slash change marker,
+- repeat plate appearances expand horizontally under the same inning header,
+- the batting-order column and inning header remain understandable while horizontally / vertically scrolling,
+- 6- or 7-inning games do not pre-render unused inning columns on screen.
