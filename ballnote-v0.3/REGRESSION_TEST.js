@@ -802,7 +802,7 @@ globalThis.__testResult={count:pendingReviewCount(),live:live(),nav:bottom()};
 `);
   equal(r.count, 1, 'pending review count');
   equal(r.live.indexOf('要確認 1件')>=0, true, 'LIVE pending review shortcut');
-  equal(r.nav.indexOf('履歴 1')>=0, true, 'history nav pending count');
+  equal(r.nav.indexOf('訂正 1')>=0, true, 'correction nav pending count');
 });
 
 test('BOX surfaces unresolved quick-commit reviews', () => {
@@ -873,6 +873,69 @@ globalThis.__testResult=out;
   equal(r.force.error.indexOf('第三アウト')>=0, true, 'force third out must reject run');
   equal(r.timePlay.error, '', 'tag time play remains scorer judgment');
 });
+
+
+test('v0.3.1 LIVE removes direct base mutation and uses field-ready labels', () => {
+  const r = runScenario(\`
+st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';
+var liveHtml=live(),diamondHtml=diamond(),navHtml=bottom();
+st.modal='end-confirm';
+var endHtml=modal();
+globalThis.__testResult={live:liveHtml,diamond:diamondHtml,nav:navHtml,end:endHtml};
+\`);
+  equal(r.diamond.indexOf('data-base')>=0, false, 'LIVE diamond must be display-only');
+  equal(r.live.indexOf('申告敬遠')>=0, true, 'intentional walk label should be declaration wording');
+  equal(r.live.indexOf('ボーク')>=0, true, 'balk should be readable in Japanese');
+  equal(r.live.indexOf('空振り')>=0, true, 'swinging strike should be explicit');
+  equal(r.live.indexOf('相手選手名を編集')>=0, false, 'opponent roster edit should not occupy LIVE');
+  equal(r.nav.indexOf('訂正')>=0, true, 'bottom nav should identify correction workflow');
+  equal(r.end.indexOf('confirm-end')>=0, true, 'manual game end requires confirmation');
+});
+
+test('v0.3.1 BOX separates pitch column and hit/advance path semantics', () => {
+  const r = runScenario(\`
+st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};
+var card=addScorecard(bat(),'8安','1B');
+card.pitches=['●','◎','－'];
+card.pitchIds=[];
+card.advances.push({from:'first',to:'second',reason:'wild_pitch',label:'WP',responsibleBatterOrder:0,rbi:false});
+var cell=scoreCell(card);
+card.finalOutNumber=3;
+var third=scoreCell(card);
+globalThis.__testResult={cell:cell,third:third};
+\`);
+  equal(r.cell.indexOf('sc-countcol')>=0, true, 'pitch count column exists');
+  equal(r.cell.indexOf('<i>1</i>●')>=0, true, 'pitch sequence number one shown');
+  equal(r.cell.indexOf('<i>2</i>◎')>=0, true, 'pitch sequence number two shown');
+  equal(r.cell.indexOf('class="run hit"')>=0, true, 'hit path is red channel');
+  equal(r.cell.indexOf('class="run advance"')>=0, true, 'later advancement is black channel');
+  equal(r.third.indexOf('sc-thirdout')>=0, true, 'third out receives change slashes');
+});
+
+test('v0.3.1 BOX expands same-inning repeat plate appearances horizontally', () => {
+  const r = runScenario(\`
+st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};
+addScorecard(bat(),'8安','1B');
+addScorecard(bat(),'8安','1B');
+var html=scorebookTable('self',7);
+globalThis.__testResult={html:html,reps:inningRepeatCounts('self',7)};
+\`);
+  equal(r.reps['1'], 2, 'inning one should allocate two subcolumns');
+  equal(r.html.indexOf('<th colspan="2">1</th>')>=0, true, 'inning header spans repeat PA columns');
+});
+
+test('v0.3.1 BOX defaults to configured regulation innings', () => {
+  const r = runScenario(\`
+st.g=game({date:'2026-09-23',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
+var html=box();
+globalThis.__testResult={html:html};
+\`);
+  equal(r.html.indexOf('<th>8</th>')>=0, false, '7-inning game should not pre-render inning 8');
+  equal(r.html.indexOf('<th>9</th>')>=0, false, '7-inning game should not pre-render inning 9');
+});
+
 
 let failed = 0;
 for (const t of tests) {
