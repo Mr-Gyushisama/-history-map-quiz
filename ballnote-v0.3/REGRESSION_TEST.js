@@ -937,6 +937,56 @@ globalThis.__testResult={html:html};
 });
 
 
+
+test('v0.3.1 BOX uses one shared body coordinate system for all cells', () => {
+  ok(html.indexOf('.sc-body{position:absolute;left:var(--sc-count-w);right:0;top:0;bottom:0;overflow:hidden}') >= 0, 'shared BOX body region missing');
+  ok(html.indexOf('.scorecell:before') < 0, 'legacy scorecell inner guide must not remain');
+  ok(html.indexOf('padding-left:22px') < 0, 'legacy content offset must not remain');
+  ok(html.indexOf("mid=x.from==='home'") < 0, 'legacy four-point advance-label placement must not remain');
+  const r = runScenario(`
+st.g=game({date:'2026-09-24',opponent:'TEST',side:'away',regulationInnings:7});st.view='box';
+function mk(result,notation,shape){
+  st.play={shape:shape||'',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};
+  var c=addScorecard(bat(),notation||'',result);
+  c.result=result;c.shape=shape||'';return c;
+}
+var cards=[
+  mk('1B','8安','L'),
+  mk('2B','8二','L'),
+  mk('3B','8三','L'),
+  mk('HR','本','F'),
+  mk('OUT','6-3','G'),
+  mk('OUT','8','F'),
+  mk('K','K',''),
+  mk('BB','四球',''),
+  mk('HBP','DB','')
+];
+cards[6].strikeoutType='called';
+var swing=mk('K','K','');swing.strikeoutType='swinging';cards.push(swing);
+var wp=mk('1B','8安','L');
+wp.advances.push({from:'first',to:'second',reason:'wild_pitch',label:'WP',responsibleBatterOrder:0,rbi:false});
+cards.push(wp);
+var adv=mk('1B','8安','L');
+adv.advances.push({from:'first',to:'second',reason:'batted_ball',label:'②',responsibleBatterOrder:2,rbi:false});
+cards.push(adv);
+var third=mk('OUT','6-3','G');third.finalOutNumber=3;cards.push(third);
+var empty=scoreCell(null),htmls=cards.map(scoreCell);
+var pos1=runnerLabelPoint(advancePoints('home','first'));
+var pos2=runnerLabelPoint(advancePoints('first','second'));
+globalThis.__testResult={empty:empty,htmls:htmls,pos1:pos1,pos2:pos2};
+`);
+  equal(r.empty.indexOf('sc-body')>=0, true, 'empty cell must use shared body');
+  for (let i=0;i<r.htmls.length;i++) {
+    equal(r.htmls[i].indexOf('sc-body')>=0, true, 'representative cell '+i+' must use shared body');
+    equal(r.htmls[i].indexOf('sc-countcol')>=0, true, 'representative cell '+i+' must preserve count column');
+  }
+  equal(r.htmls[10].indexOf('WP')>=0, true, 'WP label must render');
+  equal(r.htmls[11].indexOf('②')>=0, true, 'responsible batter advance number must render');
+  equal(r.htmls[12].indexOf('sc-thirdout')>=0, true, 'third-out slashes must render');
+  ok(r.pos1.x > 36 && r.pos1.y > 36, 'home-first label should sit outside the segment');
+  ok(r.pos2.x > 36 && r.pos2.y < 16, 'first-second label should sit outside the segment');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
