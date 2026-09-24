@@ -987,6 +987,170 @@ globalThis.__testResult={empty:empty,htmls:htmls,pos1:pos1,pos2:pos2};
   ok(r.pos2.x > 36 && r.pos2.y < 16, 'first-second label should sit outside the segment');
 });
 
+
+test('representative BOX cases match internal game state', () => {
+  const r = runScenario(`
+function resetGame(){st.g=game({date:'2026-09-24',opponent:'TEST',side:'away',regulationInnings:7});st.view='live';st.undo=[];st.redo=[];}
+function lastCard(){return st.g.scorecards[st.g.scorecards.length-1];}
+var out={};
+
+resetGame();
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+out.single={first:st.g.bases.first,second:st.g.bases.second,score:scoreOf('self'),card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('2B');
+out.double={first:st.g.bases.first,second:st.g.bases.second,third:st.g.bases.third,card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('3B');
+out.triple={third:st.g.bases.third,card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+st.play={shape:'F',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('HR');
+out.hr={bases:cp(st.g.bases),score:scoreOf('self'),card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');
+out.ground={outs:st.g.outs,card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+st.play={shape:'F',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('OUT');
+out.fly={outs:st.g.outs,card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+pitch('strike');pitch('strike');pitch('strike');
+out.calledK={outs:st.g.outs,card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+pitch('swing');pitch('swing');pitch('swing');
+out.swingK={outs:st.g.outs,card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+pitch('ball');pitch('ball');pitch('ball');pitch('ball');
+out.walk={first:st.g.bases.first,count:cp(st.g.count),card:cp(lastCard()),cell:scoreCell(lastCard()),p1:cp(st.g.stats.p1)};
+
+resetGame();
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+prepareRunnerEvent('wild_pitch');commitRunnerEvent();
+out.wp={bases:cp(st.g.bases),card:cp(st.g.scorecards[0]),cell:scoreCell(st.g.scorecards[0]),pitcherWP:st.g.pitching.opp.WP,runnerEvents:st.g.runnerEvents.length,bi:st.g.bi};
+
+resetGame();
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
+st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');commitInplay(false);
+out.nextBatterAdvance={bases:cp(st.g.bases),card:cp(st.g.scorecards[0]),cell:scoreCell(st.g.scorecards[0]),bi:st.g.bi};
+
+resetGame();
+for(var i=0;i<3;i++){st.play={shape:'G',fielder:'6',target:'3',throwPath:['6','3'],result:'',runnerActions:[]};beginInplay('OUT');}
+out.thirdOut={inning:st.g.inning,half:st.g.half,outs:st.g.outs,bases:cp(st.g.bases),thirdCard:cp(st.g.scorecards[2]),cell:scoreCell(st.g.scorecards[2]),cards:st.g.scorecards.length};
+
+resetGame();
+for(var w=0;w<10;w++){pitch('ball');pitch('ball');pitch('ball');pitch('ball');}
+var p1cards=st.g.scorecards.filter(function(c){return c.teamKey==='self'&&c.playerId==='p1'&&c.inning===1});
+var repeats=inningRepeatCounts('self',7),table=scorebookTable('self',7);
+out.repeat={inning:st.g.inning,half:st.g.half,outs:st.g.outs,bi:st.g.bi,p1cards:p1cards.length,reps:repeats['1'],table:table,scorecards:st.g.scorecards.length};
+
+globalThis.__testResult=out;
+`);
+
+  equal(r.single.first,'p1','single puts batter on first');
+  equal(r.single.second,null,'single leaves second empty');
+  equal(r.single.score,0,'single does not score without runners');
+  equal(r.single.card.result,'1B','single scorecard result');
+  equal(r.single.card.notation,'8安','single notation');
+  equal(r.single.p1.H,1,'single hit stat');
+  ok(r.single.cell.indexOf('class="run hit"')>=0,'single hit path');
+  ok(r.single.cell.indexOf('8安')>=0,'single BOX notation');
+
+  equal(r.double.second,'p1','double puts batter on second');
+  equal(r.double.first,null,'double leaves first empty');
+  equal(r.double.card.result,'2B','double scorecard result');
+  equal(r.double.card.notation,'8二','double notation');
+  equal(r.double.p1.H,1,'double hit stat');
+  ok(r.double.cell.indexOf('class="run hit"')>=0,'double hit path');
+
+  equal(r.triple.third,'p1','triple puts batter on third');
+  equal(r.triple.card.result,'3B','triple scorecard result');
+  equal(r.triple.card.notation,'8三','triple notation');
+  equal(r.triple.p1.H,1,'triple hit stat');
+
+  equal(r.hr.bases.first,null,'home run clears first');
+  equal(r.hr.bases.second,null,'home run clears second');
+  equal(r.hr.bases.third,null,'home run clears third');
+  equal(r.hr.score,1,'solo home run scores one');
+  equal(r.hr.card.result,'HR','home run scorecard result');
+  equal(r.hr.card.finalMarker,'●','home run run marker');
+  equal(r.hr.p1.H,1,'home run hit stat');
+  equal(r.hr.p1.R,1,'home run run stat');
+  equal(r.hr.p1.RBI,1,'home run RBI stat');
+  ok(r.hr.cell.indexOf('本')>=0,'home run BOX notation');
+
+  equal(r.ground.outs,1,'ground out increments outs');
+  equal(r.ground.card.notation,'6-3','ground out notation');
+  equal(r.ground.card.shape,'G','ground out shape');
+  equal(r.ground.card.finalOutNumber,1,'ground out number');
+  equal(r.ground.p1.AB,1,'ground out at bat');
+  ok(r.ground.cell.indexOf('◡')>=0,'ground symbol');
+  ok(r.ground.cell.indexOf('6-3')>=0,'ground route');
+
+  equal(r.fly.outs,1,'fly out increments outs');
+  equal(r.fly.card.notation,'8','fly out notation');
+  equal(r.fly.card.shape,'F','fly out shape');
+  equal(r.fly.card.finalOutNumber,1,'fly out number');
+  ok(r.fly.cell.indexOf('◠')>=0,'fly symbol');
+
+  equal(r.calledK.outs,1,'called strikeout increments outs');
+  equal(r.calledK.card.result,'K','called strikeout result');
+  equal(r.calledK.card.strikeoutType,'called','called strikeout type');
+  equal(r.calledK.p1.K,1,'called strikeout batter K');
+  ok(r.calledK.cell.indexOf('<span>K</span>')>=0,'called strikeout BOX K');
+
+  equal(r.swingK.outs,1,'swinging strikeout increments outs');
+  equal(r.swingK.card.result,'K','swinging strikeout result');
+  equal(r.swingK.card.strikeoutType,'swinging','swinging strikeout type');
+  equal(r.swingK.p1.K,1,'swinging strikeout batter K');
+  ok(r.swingK.cell.indexOf('class="reverse-k"')>=0,'swinging strikeout reverse K');
+
+  equal(r.walk.first,'p1','walk puts batter on first');
+  equal(r.walk.count.b,0,'walk resets balls');
+  equal(r.walk.count.s,0,'walk resets strikes');
+  equal(r.walk.card.result,'BB','walk scorecard result');
+  equal(r.walk.p1.BB,1,'walk stat');
+  equal(r.walk.p1.PA,1,'walk plate appearance');
+  equal(r.walk.p1.AB,0,'walk is not at bat');
+  ok(r.walk.cell.indexOf('四球')>=0,'walk BOX notation');
+
+  equal(r.wp.bases.first,null,'WP clears first');
+  equal(r.wp.bases.second,'p1','WP advances runner to second');
+  equal(r.wp.pitcherWP,1,'WP pitcher stat');
+  equal(r.wp.runnerEvents,1,'WP runner event stored');
+  equal(r.wp.bi,1,'WP does not advance batting order');
+  ok(r.wp.card.advances.some(function(a){return a.reason==='wild_pitch'&&a.label==='WP'&&a.from==='first'&&a.to==='second'}),'WP stored on runner card');
+  ok(r.wp.cell.indexOf('WP')>=0,'WP visible in BOX');
+
+  equal(r.nextBatterAdvance.bases.first,'p2','next batter single puts p2 on first');
+  equal(r.nextBatterAdvance.bases.second,'p1','next batter single advances p1 to second');
+  equal(r.nextBatterAdvance.bi,2,'next batter hit advances batting order');
+  ok(r.nextBatterAdvance.card.advances.some(function(a){return a.responsibleBatterOrder===2&&a.label==='②'}),'next batter advance stores circled batter order');
+  ok(r.nextBatterAdvance.cell.indexOf('②')>=0,'next batter advance number visible');
+
+  equal(r.thirdOut.cards,3,'three outs produce three scorecards');
+  equal(r.thirdOut.thirdCard.finalOutNumber,3,'third out card number');
+  equal(r.thirdOut.half,'bottom','third out advances half inning');
+  equal(r.thirdOut.outs,0,'outs reset after side change');
+  equal(r.thirdOut.bases.first,null,'bases cleared after side change');
+  ok(r.thirdOut.cell.indexOf('sc-thirdout')>=0,'third out slashes visible');
+
+  equal(r.repeat.inning,1,'ten walks stay in first inning');
+  equal(r.repeat.half,'top','ten walks stay in top half');
+  equal(r.repeat.outs,0,'ten walks create no outs');
+  equal(r.repeat.bi,1,'ten walks cycle batting order to second slot');
+  equal(r.repeat.p1cards,2,'first batting slot has two PAs in same inning');
+  equal(r.repeat.reps,2,'inning repeat count allocates two columns');
+  equal(r.repeat.scorecards,10,'ten walk scorecards recorded');
+  ok(r.repeat.table.indexOf('<th colspan="2">1</th>')>=0,'same inning repeat PAs expand horizontally');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
