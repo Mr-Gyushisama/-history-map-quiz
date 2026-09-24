@@ -1,0 +1,12 @@
+{
+  "name": "BALLNOTE",
+  "short_name": "BALLNOTE",
+  "description": "野球スコアブック＋データ分析",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f7f5",
+  "theme_color": "#0b6b4b"
+}
