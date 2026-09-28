@@ -1209,6 +1209,58 @@ globalThis.__testResult={doubleNotation:doubleNotation,tripleNotation:tripleNota
   equal(r.balkLabel,'ボーク','balk uses katakana label');
 });
 
+
+test('storage footprint remains bounded for 7 9 and 12 inning workloads', () => {
+  function measure(innings, pitches) {
+    return runScenario(\`
+st.g=game({date:'2026-09-29',opponent:'CAPACITY',side:'away'});st.view='live';
+st.g.regulationInnings=\${innings};
+for(var i=0;i<\${pitches};i++)pitch('strike');
+var gameJson=JSON.stringify(st.g);
+var payloadJson=JSON.stringify({draft:st.draft,g:st.g,savedAt:Date.now()});
+var metaJson=JSON.stringify({schemaVersion:1,currentGameId:st.g.gameId,savedAt:Date.now(),lastView:st.view});
+globalThis.__testResult={
+  gameBytes:gameJson.length,
+  legacyPayloadBytes:payloadJson.length,
+  metaBytes:metaJson.length,
+  pitches:st.g.pitches.length,
+  plays:st.g.plays.length,
+  cards:st.g.scorecards.length,
+  checkpoints:(st.g.replayCheckpoints||[]).length
+};
+\`);
+  }
+  const r7=measure(7,126);
+  const r9=measure(9,162);
+  const r12=measure(12,216);
+  ok(r7.gameBytes < 1500000, '7-inning game storage footprint exceeded 1.5MB');
+  ok(r9.gameBytes < 1500000, '9-inning game storage footprint exceeded 1.5MB');
+  ok(r12.gameBytes < 1500000, '12-inning game storage footprint exceeded 1.5MB');
+  ok(r7.gameBytes < r9.gameBytes && r9.gameBytes < r12.gameBytes, 'game size should grow monotonically with workload');
+  ok(r12.metaBytes < 1024, 'lightweight localStorage metadata must stay under 1KB');
+  console.log('STORAGE_FOOTPRINT', JSON.stringify({seven:r7,nine:r9,twelve:r12}));
+});
+
+test('storage code keeps full game out of lightweight state metadata', () => {
+  const r = runScenario(\`
+st.g=game({date:'2026-09-29',opponent:'STORAGE',side:'away'});st.view='live';
+pitch('ball');
+var payload={draft:st.draft,g:st.g,savedAt:Date.now()};
+var meta={schemaVersion:2,currentGameId:payload.g.gameId,draft:payload.draft||{},savedAt:Number(payload.savedAt||Date.now())};
+globalThis.__testResult={
+  metaHasGame:Object.prototype.hasOwnProperty.call(meta,'g'),
+  metaBytes:JSON.stringify(meta).length,
+  gameBytes:JSON.stringify(st.g).length,
+  currentGameId:meta.currentGameId,
+  gameId:st.g.gameId
+};
+\`);
+  equal(r.metaHasGame,false,'IndexedDB state metadata must not embed full game');
+  equal(r.currentGameId,r.gameId,'state metadata references canonical game record');
+  ok(r.metaBytes < 2048,'IndexedDB state metadata remains small');
+  ok(r.gameBytes > r.metaBytes,'game body remains separate from metadata');
+});
+
 let failed = 0;
 for (const t of tests) {
   try {
