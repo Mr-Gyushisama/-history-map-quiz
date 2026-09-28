@@ -9,14 +9,20 @@ on:
       - ballnote-v031-release-main
     paths:
       - 'ballnote-v0.3/index.html'
+      - 'ballnote-v0.3/manifest.webmanifest'
+      - 'ballnote-v0.3/sw.js'
       - 'ballnote-v0.3/REGRESSION_TEST.js'
+      - 'ballnote-v0.3/BROWSER_ACCEPTANCE_TEST.js'
       - '.github/workflows/ballnote-regression.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'ballnote-v0.3/index.html'
+      - 'ballnote-v0.3/manifest.webmanifest'
+      - 'ballnote-v0.3/sw.js'
       - 'ballnote-v0.3/REGRESSION_TEST.js'
+      - 'ballnote-v0.3/BROWSER_ACCEPTANCE_TEST.js'
       - '.github/workflows/ballnote-regression.yml'
   workflow_dispatch:
 
@@ -36,3 +42,35 @@ jobs:
           node-version: '24'
       - name: Run BALLNOTE regression
         run: node ballnote-v0.3/REGRESSION_TEST.js
+
+  browser-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser test runtime
+        run: npm install --no-save playwright-core@1.55.0
+      - name: Start local server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ballnote-http.log 2>&1 &
+          echo $! > /tmp/ballnote-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/ballnote-v0.3/ >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/ballnote-http.log
+          exit 1
+      - name: Run Chromium acceptance
+        run: node ballnote-v0.3/BROWSER_ACCEPTANCE_TEST.js
+      - name: Upload acceptance PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ballnote-acceptance-pdfs
+          path: /tmp/ballnote-*.pdf
+          if-no-files-found: ignore
