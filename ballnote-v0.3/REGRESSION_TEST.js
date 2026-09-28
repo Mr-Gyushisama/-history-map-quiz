@@ -1212,10 +1212,10 @@ globalThis.__testResult={doubleNotation:doubleNotation,tripleNotation:tripleNota
 
 test('storage footprint remains bounded for 7 9 and 12 inning workloads', () => {
   function measure(innings, pitches) {
-    return runScenario(\`
+    return runScenario(`
 st.g=game({date:'2026-09-29',opponent:'CAPACITY',side:'away'});st.view='live';
-st.g.regulationInnings=\${innings};
-for(var i=0;i<\${pitches};i++)pitch('strike');
+st.g.regulationInnings=${innings};
+for(var i=0;i<${pitches};i++)pitch('strike');
 var gameJson=JSON.stringify(st.g);
 var payloadJson=JSON.stringify({draft:st.draft,g:st.g,savedAt:Date.now()});
 var metaJson=JSON.stringify({schemaVersion:1,currentGameId:st.g.gameId,savedAt:Date.now(),lastView:st.view});
@@ -1228,7 +1228,7 @@ globalThis.__testResult={
   cards:st.g.scorecards.length,
   checkpoints:(st.g.replayCheckpoints||[]).length
 };
-\`);
+`);
   }
   const r7=measure(7,126);
   const r9=measure(9,162);
@@ -1242,7 +1242,7 @@ globalThis.__testResult={
 });
 
 test('storage code keeps full game out of lightweight state metadata', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-29',opponent:'STORAGE',side:'away'});st.view='live';
 pitch('ball');
 var payload={draft:st.draft,g:st.g,savedAt:Date.now()};
@@ -1254,7 +1254,7 @@ globalThis.__testResult={
   currentGameId:meta.currentGameId,
   gameId:st.g.gameId
 };
-\`);
+`);
   equal(r.metaHasGame,false,'IndexedDB state metadata must not embed full game');
   equal(r.currentGameId,r.gameId,'state metadata references canonical game record');
   ok(r.metaBytes < 2048,'IndexedDB state metadata remains small');
