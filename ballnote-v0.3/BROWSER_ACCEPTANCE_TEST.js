@@ -33,9 +33,13 @@ async function runScenario(browser, label, viewport) {
   const page = await context.newPage();
   const pageErrors = [];
   const consoleErrors = [];
+  const badResponses = [];
   page.on('pageerror', e => pageErrors.push(String(e)));
   page.on('console', m => {
     if (m.type() === 'error') consoleErrors.push(m.text());
+  });
+  page.on('response', response => {
+    if (response.status() >= 400) badResponses.push({ url: response.url(), status: response.status() });
   });
 
   console.log('SCENARIO', label, viewport.width + 'x' + viewport.height);
@@ -129,8 +133,13 @@ async function runScenario(browser, label, viewport) {
   assert(pdf.length > 5000, label + ': PDF generated');
   assert(fs.statSync(pdfPath).size === pdf.length, label + ': PDF file persisted');
 
+  const unexpectedResponses = badResponses.filter(r => !/\/favicon\.ico(?:\?|$)/.test(r.url));
+  const unexpectedConsoleErrors = unexpectedResponses.length
+    ? consoleErrors
+    : consoleErrors.filter(m => !/Failed to load resource: the server responded with a status of 404/.test(m));
   assert(pageErrors.length === 0, label + ': page errors: ' + pageErrors.join(' | '));
-  assert(consoleErrors.length === 0, label + ': console errors: ' + consoleErrors.join(' | '));
+  assert(unexpectedResponses.length === 0, label + ': HTTP errors: ' + JSON.stringify(unexpectedResponses));
+  assert(unexpectedConsoleErrors.length === 0, label + ': console errors: ' + unexpectedConsoleErrors.join(' | '));
 
   await context.close();
   console.log('PASS', label);
