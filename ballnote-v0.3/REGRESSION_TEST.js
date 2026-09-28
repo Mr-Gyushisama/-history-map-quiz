@@ -1153,7 +1153,7 @@ globalThis.__testResult=out;
 
 
 test('dropped-third automatic batter out credits catcher PO and survives rebuild', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-29',opponent:'TEST',side:'away'});st.view='live';
 st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};beginInplay('1B');
 pitch('strike');pitch('strike');
@@ -1164,7 +1164,7 @@ var before={outs:st.g.outs,first:st.g.bases.first,automatic:p.automaticStrikeout
 rebuildAllDerivedFromLedger();
 var after={po:st.g.fieldingStats[catcher]?st.g.fieldingStats[catcher].PO:0};
 globalThis.__testResult={before:before,after:after};
-\`);
+`);
   equal(r.before.outs,1,'automatic dropped-third batter out increments outs');
   equal(r.before.first,'p1','existing first-base runner remains');
   equal(r.before.automatic,true,'automatic strikeout-out flag stored');
@@ -1173,7 +1173,7 @@ globalThis.__testResult={before:before,after:after};
 });
 
 test('dropped-third eligible batter out stores 2-3 fielding path and survives rebuild', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-29',opponent:'TEST',side:'away'});st.view='live';
 pitch('strike');pitch('strike');
 prepareDroppedThird();
@@ -1184,7 +1184,7 @@ var before={path:cp(p.fieldingPath),automatic:p.automaticStrikeoutOut,catcherA:s
 rebuildAllDerivedFromLedger();
 var after={catcherA:st.g.fieldingStats[catcher]?st.g.fieldingStats[catcher].A:0,firstPO:st.g.fieldingStats[first]?st.g.fieldingStats[first].PO:0};
 globalThis.__testResult={before:before,after:after};
-\`);
+`);
   equal(r.before.path.join('-'),'2-3','default dropped-third fielding path');
   equal(r.before.automatic,false,'eligible batter out is not automatic');
   equal(r.before.catcherA,1,'catcher gets assist on 2-3');
@@ -1194,7 +1194,7 @@ globalThis.__testResult={before:before,after:after};
 });
 
 test('v0.3.1 BOX omits extra-base hit glyphs and spells out balk', () => {
-  const r = runScenario(\`
+  const r = runScenario(`
 st.g=game({date:'2026-09-29',opponent:'TEST',side:'away'});st.view='live';
 st.play={shape:'L',fielder:'8',target:'',throwPath:[],result:'',runnerActions:[]};
 var doubleNotation=makeNotation('2B');
@@ -1203,7 +1203,7 @@ st.g.bases.first='p1';
 prepareRunnerEvent('balk');
 var balkLabel=reasonMark('balk');
 globalThis.__testResult={doubleNotation:doubleNotation,tripleNotation:tripleNotation,balkLabel:balkLabel};
-\`);
+`);
   equal(r.doubleNotation,'8安','double BOX notation omits 二 glyph');
   equal(r.tripleNotation,'8安','triple BOX notation omits 三 glyph');
   equal(r.balkLabel,'ボーク','balk uses katakana label');
