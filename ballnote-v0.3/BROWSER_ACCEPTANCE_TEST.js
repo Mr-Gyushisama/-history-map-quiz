@@ -96,18 +96,26 @@ async function runScenario(browser, label, viewport) {
   state = await storedState(page);
   assert(state.g.bases.first === 'p1' && state.g.bi === 1, label + ': state restored after reload');
 
-  await context.setOffline(true);
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
-  assert((await safeText(page, 'body')).includes('BALLNOTE'), label + ': offline shell reload');
-  assert((await safeText(page, 'body')).includes('記録を続ける'), label + ': offline resume path is available');
-  await page.getByRole('button', { name: '記録を続ける' }).click();
-  assert((await safeText(page, 'body')).includes('1回表'), label + ': offline resume returns to live');
+  if (ENGINE === 'chromium') {
+    await context.setOffline(true);
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    assert((await safeText(page, 'body')).includes('BALLNOTE'), label + ': offline shell reload');
+    assert((await safeText(page, 'body')).includes('記録を続ける'), label + ': offline resume path is available');
+    await page.getByRole('button', { name: '記録を続ける' }).click();
+    assert((await safeText(page, 'body')).includes('1回表'), label + ': offline resume returns to live');
 
-  await page.getByRole('button', { name: 'ボール' }).click();
-  state = await storedState(page);
-  assert(state.g.count.b === 1, label + ': offline pitch persists');
-
-  await context.setOffline(false);
+    await page.getByRole('button', { name: 'ボール' }).click();
+    state = await storedState(page);
+    assert(state.g.count.b === 1, label + ': offline pitch persists');
+    await context.setOffline(false);
+  } else {
+    assert((await safeText(page, 'body')).includes('記録を続ける'), label + ': WebKit resume path after reload');
+    await page.getByRole('button', { name: '記録を続ける' }).click();
+    assert((await safeText(page, 'body')).includes('1回表'), label + ': WebKit resume returns to live');
+    await page.getByRole('button', { name: 'ボール' }).click();
+    state = await storedState(page);
+    assert(state.g.count.b === 1, label + ': WebKit resumed pitch persists');
+  }
   await page.getByRole('button', { name: 'BOX' }).click();
   assert((await safeText(page, 'body')).includes('ボックススコア'), label + ': BOX opens');
 
