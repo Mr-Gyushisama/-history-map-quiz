@@ -116,7 +116,16 @@ async function runScenario(browser, label, viewport) {
 
   await page.getByRole('button', { name: '＋ 新しい試合' }).click();
   await page.locator('#opp').fill('受入テスト');
-  await page.waitForTimeout(150);
+  await page.waitForFunction(
+    () => {
+      try {
+        const m = JSON.parse(localStorage.getItem('ballnote-v031-meta') || 'null');
+        return !!(m && m.draft && m.draft.opponent === '受入テスト');
+      } catch (e) { return false; }
+    },
+    null,
+    { timeout: 5000 }
+  );
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByRole('button', { name: '＋ 新しい試合' }).click();
   await page.waitForFunction(
