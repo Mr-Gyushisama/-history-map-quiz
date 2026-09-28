@@ -116,6 +116,10 @@ async function runScenario(browser, label, viewport) {
 
   await page.getByRole('button', { name: '＋ 新しい試合' }).click();
   await page.locator('#opp').fill('受入テスト');
+  await page.waitForTimeout(150);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: '＋ 新しい試合' }).click();
+  assert((await page.locator('#opp').inputValue()) === '受入テスト', label + ': pregame draft restored from IndexedDB');
   await page.getByRole('button', { name: '先攻' }).click();
   await page.getByRole('button', { name: '試合を開始' }).click();
 
