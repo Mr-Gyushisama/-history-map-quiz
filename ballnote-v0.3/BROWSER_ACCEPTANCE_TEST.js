@@ -94,6 +94,9 @@ async function runScenario(browser, label, viewport) {
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
   assert((await safeText(page, 'body')).includes('BALLNOTE'), label + ': offline shell reload');
+  assert((await safeText(page, 'body')).includes('記録を続ける'), label + ': offline resume path is available');
+  await page.getByRole('button', { name: '記録を続ける' }).click();
+  assert((await safeText(page, 'body')).includes('1回表'), label + ': offline resume returns to live');
 
   await page.getByRole('button', { name: 'ボール' }).click();
   state = await storedState(page);
