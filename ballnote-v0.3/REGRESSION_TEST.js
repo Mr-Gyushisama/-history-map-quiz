@@ -952,8 +952,8 @@ function mk(result,notation,shape){
 }
 var cards=[
   mk('1B','8安','L'),
-  mk('2B','8二','L'),
-  mk('3B','8三','L'),
+  mk('2B','8安','L'),
+  mk('3B','8安','L'),
   mk('HR','本','F'),
   mk('OUT','6-3','G'),
   mk('OUT','8','F'),
@@ -1065,13 +1065,13 @@ globalThis.__testResult=out;
   equal(r.double.second,'p1','double puts batter on second');
   equal(r.double.first,null,'double leaves first empty');
   equal(r.double.card.result,'2B','double scorecard result');
-  equal(r.double.card.notation,'8二','double notation');
+  equal(r.double.card.notation,'8安','double notation');
   equal(r.double.p1.H,1,'double hit stat');
   ok(r.double.cell.indexOf('class="run hit"')>=0,'double hit path');
 
   equal(r.triple.third,'p1','triple puts batter on third');
   equal(r.triple.card.result,'3B','triple scorecard result');
-  equal(r.triple.card.notation,'8三','triple notation');
+  equal(r.triple.card.notation,'8安','triple notation');
   equal(r.triple.p1.H,1,'triple hit stat');
 
   equal(r.hr.bases.first,null,'home run clears first');
