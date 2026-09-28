@@ -2,13 +2,14 @@
 
 const fs = require('fs');
 const { execSync } = require('child_process');
-const { chromium } = require('playwright-core');
+const { chromium, webkit } = require('playwright-core');
 
 const BASE = process.env.BALLNOTE_URL || 'http://127.0.0.1:4173/ballnote-v0.3/';
-const chrome = process.env.CHROME_BIN || execSync(
+const ENGINE = process.env.BROWSER_ENGINE || 'chromium';
+const chrome = ENGINE === 'chromium' ? (process.env.CHROME_BIN || execSync(
   'command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser',
   { encoding: 'utf8', shell: '/bin/bash' }
-).trim();
+).trim()) : '';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -128,10 +129,14 @@ async function runScenario(browser, label, viewport) {
   assert(printState.printOnly !== 'none', label + ': print layout visible');
   assert(printState.screenOnly === 'none', label + ': screen layout hidden for print');
 
-  const pdfPath = '/tmp/ballnote-' + label + '.pdf';
-  const pdf = await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
-  assert(pdf.length > 5000, label + ': PDF generated');
-  assert(fs.statSync(pdfPath).size === pdf.length, label + ': PDF file persisted');
+  let pdfBytes = 0;
+  if (ENGINE === 'chromium') {
+    const pdfPath = '/tmp/ballnote-' + label + '.pdf';
+    const pdf = await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
+    pdfBytes = pdf.length;
+    assert(pdf.length > 5000, label + ': PDF generated');
+    assert(fs.statSync(pdfPath).size === pdf.length, label + ': PDF file persisted');
+  }
 
   const unexpectedResponses = badResponses.filter(r => !/\/favicon\.ico(?:\?|$)/.test(r.url));
   const unexpectedConsoleErrors = unexpectedResponses.length
@@ -142,21 +147,21 @@ async function runScenario(browser, label, viewport) {
   assert(unexpectedConsoleErrors.length === 0, label + ': console errors: ' + unexpectedConsoleErrors.join(' | '));
 
   await context.close();
-  console.log('PASS', label);
-  return { label, pdfBytes: pdf.length };
+  console.log('PASS', ENGINE, label);
+  return { engine: ENGINE, label, pdfBytes };
 }
 
 (async () => {
-  const browser = await chromium.launch({
-    executablePath: chrome,
-    headless: true,
-    args: ['--no-sandbox', '--disable-dev-shm-usage']
-  });
+  const browserType = ENGINE === 'webkit' ? webkit : chromium;
+  const launchOptions = ENGINE === 'chromium'
+    ? { executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] }
+    : { headless: true };
+  const browser = await browserType.launch(launchOptions);
   try {
     const results = [];
     results.push(await runScenario(browser, 'iphone-like', { width: 390, height: 844 }));
     results.push(await runScenario(browser, 'ipad-like', { width: 1024, height: 1366 }));
-    console.log('BALLNOTE browser acceptance: all ' + results.length + ' scenarios passed');
+    console.log('BALLNOTE browser acceptance: ' + ENGINE + ' all ' + results.length + ' scenarios passed');
     console.log(JSON.stringify(results));
   } finally {
     await browser.close();
