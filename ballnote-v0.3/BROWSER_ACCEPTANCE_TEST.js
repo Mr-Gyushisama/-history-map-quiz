@@ -16,10 +16,68 @@ function assert(condition, message) {
 }
 
 async function storedState(page) {
-  return page.evaluate(() => {
-    const raw = localStorage.getItem('ballnote-v030');
-    return raw ? JSON.parse(raw) : null;
-  });
+  return page.evaluate(() => new Promise(resolve => {
+    const req = indexedDB.open('ballnote-v030-db', 2);
+    req.onerror = () => resolve(null);
+    req.onsuccess = () => {
+      const db = req.result;
+      try {
+        const tx = db.transaction(['state','games'], 'readonly');
+        const stateReq = tx.objectStore('state').get('current');
+        stateReq.onerror = () => { try { db.close(); } catch(e) {} resolve(null); };
+        stateReq.onsuccess = () => {
+          const meta = stateReq.result || null;
+          if (!meta) { try { db.close(); } catch(e) {} resolve(null); return; }
+          if (meta.g) { try { db.close(); } catch(e) {} resolve(meta); return; }
+          if (!meta.currentGameId) { try { db.close(); } catch(e) {} resolve({draft:meta.draft||{},g:null,savedAt:meta.savedAt||0}); return; }
+          const gameReq = tx.objectStore('games').get(meta.currentGameId);
+          gameReq.onerror = () => { try { db.close(); } catch(e) {} resolve(null); };
+          gameReq.onsuccess = () => {
+            const out = {draft:meta.draft||{},g:gameReq.result||null,savedAt:meta.savedAt||0,meta};
+            try { db.close(); } catch(e) {}
+            resolve(out);
+          };
+        };
+      } catch (e) {
+        try { db.close(); } catch(x) {}
+        resolve(null);
+      }
+    };
+  }));
+}
+
+async function waitStoredState(page, predicate, message) {
+  let state = null;
+  for (let i = 0; i < 60; i++) {
+    state = await storedState(page);
+    if (state && predicate(state)) return state;
+    await page.waitForTimeout(50);
+  }
+  throw new Error(message + ' last=' + JSON.stringify(state));
+}
+
+async function storageLayout(page) {
+  return page.evaluate(() => new Promise(resolve => {
+    const legacy = localStorage.getItem('ballnote-v030');
+    const metaRaw = localStorage.getItem('ballnote-v031-meta');
+    const req = indexedDB.open('ballnote-v030-db', 2);
+    req.onerror = () => resolve({legacy,metaRaw,idb:null});
+    req.onsuccess = () => {
+      const db=req.result;
+      const tx=db.transaction(['state','games','syncQueue'],'readonly');
+      const sr=tx.objectStore('state').get('current');
+      const gr=tx.objectStore('games').getAll();
+      const qr=tx.objectStore('syncQueue').getAll();
+      tx.oncomplete=async()=>{
+        let estimate={usage:0,quota:0};
+        try { if(navigator.storage&&navigator.storage.estimate) estimate=await navigator.storage.estimate(); } catch(e) {}
+        const out={legacy,metaRaw,state:sr.result||null,games:gr.result||[],queue:qr.result||[],estimate};
+        try{db.close()}catch(e){}
+        resolve(out);
+      };
+      tx.onerror=()=>{try{db.close()}catch(e){} resolve({legacy,metaRaw,idb:null})};
+    };
+  }));
 }
 
 async function safeText(page, selector) {
@@ -66,20 +124,22 @@ async function runScenario(browser, label, viewport) {
   assert(liveOverflow <= 2, label + ': live viewport horizontal overflow=' + liveOverflow);
 
   await page.getByRole('button', { name: 'ボール' }).click();
-  let state = await storedState(page);
-  assert(state && state.g && state.g.count.b === 1, label + ': one-tap ball persisted');
+  let state = await waitStoredState(page, s => s.g && s.g.count.b === 1, label + ': one-tap ball persisted');
+  const layout = await storageLayout(page);
+  assert(layout.legacy === null, label + ': legacy full localStorage payload removed');
+  assert(layout.metaRaw && layout.metaRaw.length < 1024, label + ': lightweight localStorage metadata');
+  assert(layout.state && !layout.state.g && layout.state.currentGameId === state.g.gameId, label + ': IndexedDB state is lightweight metadata');
+  assert(layout.games && layout.games.some(g => g.gameId === state.g.gameId), label + ': game body stored in IndexedDB games');
 
   await page.getByRole('button', { name: /取消/ }).click();
-  state = await storedState(page);
-  assert(state.g.count.b === 0, label + ': Undo');
+  state = await waitStoredState(page, s => s.g && s.g.count.b === 0, label + ': Undo');
 
   await page.getByRole('button', { name: /やり直し/ }).click();
-  state = await storedState(page);
-  assert(state.g.count.b === 1, label + ': Redo');
+  state = await waitStoredState(page, s => s.g && s.g.count.b === 1, label + ': Redo');
 
   await page.getByRole('button', { name: '打球' }).click();
   await page.getByRole('button', { name: '単打' }).click();
-  state = await storedState(page);
+  state = await waitStoredState(page, s => s.g && s.g.bases.first === 'p1', label + ': single persisted');
   assert(state.g.bases.first === 'p1', label + ': single places batter on first');
   assert(state.g.bi === 1, label + ': batting order advances');
   assert(state.g.count.b === 0 && state.g.count.s === 0, label + ': count resets after PA');
@@ -105,16 +165,14 @@ async function runScenario(browser, label, viewport) {
     assert((await safeText(page, 'body')).includes('1回表'), label + ': offline resume returns to live');
 
     await page.getByRole('button', { name: 'ボール' }).click();
-    state = await storedState(page);
-    assert(state.g.count.b === 1, label + ': offline pitch persists');
+    state = await waitStoredState(page, s => s.g && s.g.count.b === 1, label + ': offline pitch persists');
     await context.setOffline(false);
   } else {
     assert((await safeText(page, 'body')).includes('記録を続ける'), label + ': WebKit resume path after reload');
     await page.getByRole('button', { name: '記録を続ける' }).click();
     assert((await safeText(page, 'body')).includes('1回表'), label + ': WebKit resume returns to live');
     await page.getByRole('button', { name: 'ボール' }).click();
-    state = await storedState(page);
-    assert(state.g.count.b === 1, label + ': WebKit resumed pitch persists');
+    state = await waitStoredState(page, s => s.g && s.g.count.b === 1, label + ': WebKit resumed pitch persists');
   }
   await page.getByRole('button', { name: 'BOX' }).click();
   assert((await safeText(page, 'body')).includes('ボックススコア'), label + ': BOX opens');
